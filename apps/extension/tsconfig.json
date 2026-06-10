@@ -1,0 +1,8 @@
+{
+  "extends": "../../packages/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "ES2022"],
+    "types": ["chrome"]
+  },
+  "include": ["src"]
+}

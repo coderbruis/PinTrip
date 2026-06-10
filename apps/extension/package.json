@@ -1,0 +1,15 @@
+{
+  "name": "@pintrip/extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.305",
+    "typescript": "^5.8.0",
+    "vite": "^6.1.0"
+  }
+}

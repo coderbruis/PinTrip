@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pintrip.local/schemas/itinerary.schema.json",
+  "title": "GeneratedItinerary",
+  "type": "object",
+  "required": ["title", "days", "sourceNoteIds"],
+  "properties": {
+    "title": { "type": "string" },
+    "summary": { "type": "string" },
+    "sourceNoteIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "days": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["day", "title", "items"],
+        "properties": {
+          "day": { "type": "integer", "minimum": 1 },
+          "title": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["time", "place", "activity"],
+              "properties": {
+                "time": { "type": "string" },
+                "place": { "type": "string" },
+                "activity": { "type": "string" },
+                "transport": { "type": "string" },
+                "tips": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "budgetSummary": { "type": "string" },
+    "riskTips": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "@pintrip/tsconfig",
+  "private": true,
+  "type": "module"
+}

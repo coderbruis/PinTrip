@@ -1,0 +1,9 @@
+{
+  "extends": "./react.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }]
+  }
+}

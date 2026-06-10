@@ -1,0 +1,20 @@
+{
+  "name": "Pintrip",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @pintrip/web dev",
+    "dev:admin": "pnpm --filter @pintrip/admin dev",
+    "dev:extension": "pnpm --filter @pintrip/extension dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "dev:api": "cd services/api && mvn spring-boot:run",
+    "dev:agent": "cd services/agent && python -m uvicorn app.main:app --reload --port 8090"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.8.0"
+  }
+}

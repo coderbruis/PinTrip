@@ -1,0 +1,57 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f7f7f4;
+  color: #20201d;
+}
+
+button {
+  border: 1px solid #20201d;
+  background: #20201d;
+  color: white;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 6px;
+}
+
+.workspace {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+}
+
+.sidebar {
+  border-right: 1px solid #deded8;
+  padding: 24px;
+  background: #ffffff;
+}
+
+.sidebar h1 {
+  margin: 0 0 24px;
+  font-size: 22px;
+}
+
+.content {
+  padding: 32px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #77766f;
+}
+
+.content h2 {
+  margin: 0 0 24px;
+  font-size: 32px;
+}
+
+.panel {
+  border: 1px solid #deded8;
+  border-radius: 8px;
+  background: #fff;
+  padding: 24px;
+}
