@@ -1,6 +1,6 @@
 # Architecture
 
-PinTrip uses a Java API service as the system of record, TypeScript apps for web surfaces, a Chrome extension for user-side imports, and an independent Agent service for long-running generation work.
+PinTrip uses a Java API service as the system of record, TypeScript apps for web surfaces, a Chrome extension for user-side imports, and two independent Agent services for long-running generation work.
 
 ## Request Flow
 
@@ -8,8 +8,9 @@ PinTrip uses a Java API service as the system of record, TypeScript apps for web
 Chrome extension -> services/api /api/plugin/xhs/import-callback
 apps/web         -> services/api /api/app/*
 apps/admin       -> services/api /api/admin/*
-services/api     -> queue/job -> services/agent
-services/agent   -> services/api or database callback
+services/api     -> import job -> services/agents/import-guide-agent
+services/api     -> prompt job -> services/agents/natural-language-guide-agent
+services/agents/* -> services/api callback
 ```
 
 ## API Namespaces
@@ -21,4 +22,4 @@ services/agent   -> services/api or database callback
 
 ## Data Ownership
 
-The Java API owns persisted data. The Agent service receives explicit tasks and returns structured outputs. The Chrome extension never uploads cookies, headers, or tokens; it only posts captured note content.
+The Java API owns persisted data. Each Agent service receives one kind of explicit task and returns structured outputs. The import guide Agent processes captured notes, while the natural-language guide Agent processes user prompts. The Chrome extension never uploads cookies, headers, or tokens; it only posts captured note content.

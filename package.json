@@ -11,7 +11,8 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "dev:api": "cd services/api && mvn spring-boot:run",
-    "dev:agent": "cd services/agent && python -m uvicorn app.main:app --reload --port 8090"
+    "dev:agent:import": "cd services/agents/import-guide-agent && python -m uvicorn app.main:app --reload --port 8090",
+    "dev:agent:natural-language": "cd services/agents/natural-language-guide-agent && python -m uvicorn app.main:app --reload --port 8091"
   },
   "devDependencies": {
     "turbo": "^2.4.0",
