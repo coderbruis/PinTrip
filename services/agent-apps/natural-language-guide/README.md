@@ -53,12 +53,17 @@ The response keeps PinTrip's `title`, `summary`, `sourceNoteIds`, `days`,
 credentials are missing and `502` when the Agent workflow cannot produce valid
 structured output.
 
+The web search box sends its text as `prompt` without a structured destination,
+so the Intent Agent resolves the destination, trip length, transportation, and
+preferences before research begins.
+
 ## Runtime progress
 
 The console logs request and LangGraph node progress with `trip_id` and
 `duration_ms`. Attraction and weather logs start together because those nodes run
-in parallel. Requests that include `destination`, `days`, and `preferences` use
-the structured intent fast path and avoid an extra LLM call. Prompts and API keys
-are never written to these progress logs.
+in parallel. Requests that include `destination` use the structured fast path
+and avoid an extra intent LLM call. When `days` is omitted, the workflow defaults
+to a three-day itinerary. Prompts and API keys are never written to these
+progress logs.
 
 See [NOTICE.md](NOTICE.md) for the adapted upstream example and license notice.

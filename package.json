@@ -6,7 +6,6 @@
   "scripts": {
     "dev:web": "pnpm --filter @pintrip/web dev",
     "dev:admin": "pnpm --filter @pintrip/admin dev",
-    "dev:extension": "pnpm --filter @pintrip/extension dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",

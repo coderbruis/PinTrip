@@ -99,7 +99,7 @@ button {
 
 .ghost-button,
 .dark-button,
-.import-bar button,
+.search-bar button,
 .login-button {
   height: 40px;
   display: inline-flex;
@@ -117,7 +117,7 @@ button {
 }
 
 .dark-button,
-.import-bar button {
+.search-bar button {
   background: #241f19;
   color: #fff;
   border-color: #241f19;
@@ -601,7 +601,7 @@ button {
 }
 
 .hero-copy {
-  width: min(820px, 100%);
+  width: min(760px, 100%);
 }
 
 .eyebrow {
@@ -614,9 +614,10 @@ button {
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(42px, 7vw, 78px);
-  line-height: 1.04;
-  font-weight: 850;
+  font-size: clamp(38px, 5vw, 60px);
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -0.035em;
 }
 
 .hero-subtitle {
@@ -627,7 +628,7 @@ button {
   line-height: 1.75;
 }
 
-.import-bar {
+.search-bar {
   width: min(820px, 100%);
   height: 62px;
   display: grid;
@@ -641,21 +642,21 @@ button {
   box-shadow: 0 18px 50px rgba(64, 46, 24, 0.12);
 }
 
-.import-label {
+.search-label {
   color: #8a5d27;
   font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
 }
 
-.import-bar input {
+.search-bar input {
   min-width: 0;
   border: 0;
   outline: 0;
   color: #241f19;
 }
 
-.import-bar input::placeholder {
+.search-bar input::placeholder {
   color: #aaa298;
 }
 
@@ -667,7 +668,7 @@ button {
   padding: 4px;
 }
 
-.quick-tags a,
+.quick-tags button,
 .tab-list label,
 .card-tags span {
   border-radius: 999px;
@@ -675,11 +676,118 @@ button {
   background: rgba(255, 255, 255, 0.68);
 }
 
-.quick-tags a {
+.quick-tags button {
   padding: 10px 16px;
   color: #5d574f;
   font-size: 14px;
   white-space: nowrap;
+}
+
+.travel-request-search {
+  width: min(960px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+}
+
+.search-bar button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.search-message {
+  margin: 0;
+  font-size: 14px;
+}
+
+.search-error {
+  color: #a33c2d;
+}
+
+.generated-guide {
+  width: min(820px, 100%);
+  padding: 24px;
+  border: 1px solid #ddd5c8;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 18px 50px rgba(64, 46, 24, 0.08);
+  text-align: left;
+}
+
+.generated-guide h2 {
+  margin: 0 0 10px;
+  font-size: 26px;
+}
+
+.generated-guide > p:not(.eyebrow) {
+  color: #665f54;
+  line-height: 1.7;
+}
+
+.generated-guide-days {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.generated-guide-days article {
+  overflow: hidden;
+  border: 1px solid #e4dccf;
+  border-radius: 12px;
+  background: #f6f1e8;
+}
+
+.generated-guide-day-image {
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  display: block;
+  object-fit: cover;
+}
+
+.generated-guide-day-body {
+  padding: 18px;
+}
+
+.generated-guide-day-body h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.generated-guide-day-body ol {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.generated-guide-day-body li {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.generated-guide-day-body time {
+  color: #8a5d27;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.generated-guide-day-body li strong {
+  font-size: 15px;
+}
+
+.generated-guide-day-body li p {
+  margin: 4px 0 0;
+  color: #665f54;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.generated-guide-budget {
+  margin-bottom: 0;
+  font-weight: 700;
 }
 
 .workspace-grid {
@@ -1161,10 +1269,11 @@ button {
   }
 
   .hero h1 {
-    font-size: 42px;
+    font-size: 36px;
+    letter-spacing: -0.025em;
   }
 
-  .import-bar {
+  .search-bar {
     height: auto;
     grid-template-columns: 1fr;
     border-radius: 18px;

@@ -23,7 +23,7 @@ class AttractionAgent:
     ) -> str:
         search_keywords = " ".join(["景点", *keywords])
         places = self._amap_client.search_places(destination, search_keywords)
-        return self._chain.invoke(
+        research = self._chain.invoke(
             {
                 "destination": destination,
                 "days": days,
@@ -31,4 +31,15 @@ class AttractionAgent:
                 "original_prompt": prompt,
                 "amap_result": json.dumps(places, ensure_ascii=False),
             }
+        )
+        photo_catalog = [
+            {"name": place.get("name"), "photos": place["photos"]}
+            for place in places
+            if place.get("photos")
+        ]
+        if not photo_catalog:
+            return research
+        return (
+            f"{research}\n\n可用高德实景图片（只能从以下URL中选择）：\n"
+            f"{json.dumps(photo_catalog, ensure_ascii=False)}"
         )

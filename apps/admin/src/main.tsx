@@ -8,7 +8,7 @@ const columns = [
 ];
 
 const data = [
-  { key: "imports", module: "导入日志", scope: "小红书素材导入、失败原因、回调状态" },
+  { key: "imports", module: "导入日志", scope: "平台素材导入、失败原因、任务状态" },
   { key: "tasks", module: "Agent 任务", scope: "生成任务、重试、耗时、模型输出" },
   { key: "prompts", module: "Prompt 模板", scope: "版本、灰度、回滚" }
 ];

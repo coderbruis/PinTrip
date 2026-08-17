@@ -80,6 +80,7 @@ def itinerary_response(days: int = 2) -> str:
                 {
                     "day": day,
                     "title": f"第{day}天",
+                    "imageUrl": f"https://example.com/day-{day}.jpg",
                     "items": [
                         {
                             "time": "09:00",
@@ -115,7 +116,10 @@ class NaturalLanguageGuideWorkflowTest(unittest.TestCase):
         )
 
     def test_generates_pintrip_itinerary(self) -> None:
-        workflow = self.build_workflow(FakeItineraryAgent(itinerary_response()))
+        intent_agent = FakeIntentAgent(intent_response())
+        workflow = self.build_workflow(
+            FakeItineraryAgent(itinerary_response()), intent_agent
+        )
 
         result = workflow.plan(
             NaturalLanguageGuideRequest(
@@ -127,14 +131,23 @@ class NaturalLanguageGuideWorkflowTest(unittest.TestCase):
         self.assertEqual(result.trip_id, "trip-1")
         self.assertEqual(len(result.days), 2)
         self.assertEqual(result.days[0].items[0].place, "地点1")
+        self.assertEqual(
+            result.days[0].image_url, "https://example.com/day-1.jpg"
+        )
         self.assertEqual(result.source_note_ids, [])
-        self.assertIn("sourceNoteIds", result.model_dump(by_alias=True))
-        self.assertIn("budgetSummary", result.model_dump(by_alias=True))
+        self.assertEqual(len(intent_agent.queries), 1)
+        response_payload = result.model_dump(by_alias=True)
+        self.assertIn("sourceNoteIds", response_payload)
+        self.assertIn("budgetSummary", response_payload)
+        self.assertEqual(
+            response_payload["days"][0]["imageUrl"],
+            "https://example.com/day-1.jpg",
+        )
 
-    def test_skips_intent_llm_when_structured_fields_are_complete(self) -> None:
+    def test_skips_intent_llm_when_destination_is_provided(self) -> None:
         intent_agent = FakeIntentAgent()
         workflow = self.build_workflow(
-            FakeItineraryAgent(itinerary_response(days=1)), intent_agent
+            FakeItineraryAgent(itinerary_response(days=3)), intent_agent
         )
 
         with self.assertLogs(
@@ -143,15 +156,12 @@ class NaturalLanguageGuideWorkflowTest(unittest.TestCase):
             result = workflow.plan(
                 NaturalLanguageGuideRequest(
                     trip_id="trip-fast-path",
-                    prompt="成都一日低强度人文旅行",
+                    prompt="成都",
                     destination="成都",
-                    days=1,
-                    transportation="公共交通",
-                    preferences=["人文", "低强度"],
                 )
             )
 
-        self.assertEqual(len(result.days), 1)
+        self.assertEqual(len(result.days), 3)
         self.assertEqual(intent_agent.queries, [])
         self.assertTrue(
             any("intent.fast_path" in message for message in logs.output)

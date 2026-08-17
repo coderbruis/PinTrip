@@ -1,6 +1,5 @@
+import { TravelRequestSearch } from "./TravelRequestSearch";
 import { UserMenu } from "./UserMenu";
-
-const tabLabels = ["川西周末", "海岛松弛", "城市漫游", "亲子轻徒步", "毕业旅行", "避暑路线"];
 
 const trips = [
   {
@@ -37,12 +36,6 @@ const trips = [
   }
 ];
 
-const imports = [
-  { title: "姑弄村岗日噶玛咖啡厅", status: "已抽取 6 个点位" },
-  { title: "甲根坝纳梯村避堵路线", status: "等待合并" },
-  { title: "格底拉姆天空之城门票", status: "已加入预算" }
-];
-
 export default function HomePage() {
   return (
     <main className="home-shell">
@@ -58,7 +51,7 @@ export default function HomePage() {
           <a href="#">模板</a>
         </div>
         <div className="nav-actions">
-          <button className="ghost-button">导入记录</button>
+          <button className="ghost-button">搜索记录</button>
           <button className="dark-button">新建行程</button>
           <UserMenu />
         </div>
@@ -66,26 +59,10 @@ export default function HomePage() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">AI Travel Workspace</p>
-          <h1>把旅行灵感整理成一份能直接出发的攻略</h1>
-          <p className="hero-subtitle">
-            小红书笔记、收藏点位、预算偏好和同行需求会被整理成路线、时间表和可编辑攻略。
-          </p>
+          <p className="eyebrow">AI Travel Research</p>
         </div>
 
-        <form className="import-bar">
-          <span className="import-label">小红书 URL</span>
-          <input aria-label="小红书链接" placeholder="https://www.xiaohongshu.com/explore/..." />
-          <button type="button">导入灵感</button>
-        </form>
-
-        <div className="quick-tags" aria-label="热门旅行标签">
-          {tabLabels.map((label) => (
-            <a key={label} href="#">
-              {label}
-            </a>
-          ))}
-        </div>
+        <TravelRequestSearch />
       </section>
 
       <section className="workspace-grid">
@@ -228,8 +205,8 @@ export default function HomePage() {
             <div className="queue-item">
               <span>01</span>
               <div>
-                <h3>整理灵感</h3>
-                <p>从 3 篇笔记识别出 14 个候选地点</p>
+                <h3>全网搜集</h3>
+                <p>从多个攻略平台检索相关笔记和博文</p>
               </div>
             </div>
             <div className="queue-item">

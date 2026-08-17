@@ -5,7 +5,7 @@ export default function RegisterPage() {
     <AuthPage
       eyebrow="Create Account"
       title="注册账号"
-      subtitle="创建账号后，可以保存攻略、导入记录和路线草稿。"
+      subtitle="创建账号后，可以保存攻略、搜索记录和路线草稿。"
     >
       <form className="auth-form">
         <label>

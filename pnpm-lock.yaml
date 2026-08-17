@@ -43,23 +43,8 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  apps/extension:
-    devDependencies:
-      '@types/chrome':
-        specifier: ^0.0.305
-        version: 0.0.305
-      typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
-      vite:
-        specifier: ^6.1.0
-        version: 6.4.3(@types/node@22.19.20)
-
   apps/web:
     dependencies:
-      '@pintrip/shared-types':
-        specifier: workspace:*
-        version: link:../../packages/shared-types
       next:
         specifier: ^15.2.0
         version: 15.5.19(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -83,32 +68,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  packages/api-client:
-    devDependencies:
-      typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
-
-  packages/shared-types:
-    devDependencies:
-      typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
-
   packages/tsconfig: {}
-
-  packages/ui:
-    dependencies:
-      react:
-        specifier: ^19.0.0
-        version: 19.2.7
-    devDependencies:
-      '@types/react':
-        specifier: ^19.0.0
-        version: 19.2.17
-      typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
 
 packages:
 
@@ -863,20 +823,8 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
-  '@types/chrome@0.0.305':
-    resolution: {integrity: sha512-bTdl6Co33lKk4jktVfpYgtrrAiHIipwaiQKaytPSn3DQx4ACz+MbtNK6JXicIxHyuzV6S3RcyGICsR8fEZ9M0g==}
-
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
-
-  '@types/filesystem@0.0.36':
-    resolution: {integrity: sha512-vPDXOZuannb9FZdxgHnqSwAG/jvdGM8Wq+6N4D/d80z+D4HWH+bItqsZaVRQykAn6WEVeEkLm2oQigyHtgb0RA==}
-
-  '@types/filewriter@0.0.33':
-    resolution: {integrity: sha512-xFU8ZXTw4gd358lb2jw25nxY9QAgqn2+bKKjKOYfNCzN4DKCFetK7sPtrlpg66Ywe3vWY9FNxprZawAh9wfJ3g==}
-
-  '@types/har-format@1.2.16':
-    resolution: {integrity: sha512-fluxdy7ryD3MV6h8pTfTYpy/xQzCFC7m89nOH9y94cNqJ1mDIDPut7MnRHI3F6qRmh/cT2fUjG1MLdCNb4hE9A==}
 
   '@types/node@22.19.20':
     resolution: {integrity: sha512-6tELRwSDYWW9EdZhbeZmYGZ1/7Djkt+Ah3/ScEYT9cDord7UJzasR/4D3VONg9tQI5CDp+/CZC1AXj2pCFOvpw==}
@@ -1995,20 +1943,7 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.7
 
-  '@types/chrome@0.0.305':
-    dependencies:
-      '@types/filesystem': 0.0.36
-      '@types/har-format': 1.2.16
-
   '@types/estree@1.0.9': {}
-
-  '@types/filesystem@0.0.36':
-    dependencies:
-      '@types/filewriter': 0.0.33
-
-  '@types/filewriter@0.0.33': {}
-
-  '@types/har-format@1.2.16': {}
 
   '@types/node@22.19.20':
     dependencies:

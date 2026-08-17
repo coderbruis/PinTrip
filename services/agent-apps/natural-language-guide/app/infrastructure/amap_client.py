@@ -30,7 +30,7 @@ class AmapClient:
                 "keywords": keywords,
                 "offset": min(max(limit, 1), 25),
                 "page": 1,
-                "extensions": "base",
+                "extensions": "all",
             },
         )
         return [
@@ -39,9 +39,22 @@ class AmapClient:
                 "address": place.get("address"),
                 "location": place.get("location"),
                 "type": place.get("type"),
+                "photos": self._extract_photo_urls(place),
             }
             for place in payload.get("pois", [])
         ]
+
+    @staticmethod
+    def _extract_photo_urls(place: dict[str, Any]) -> list[str]:
+        photos = place.get("photos")
+        if not isinstance(photos, list):
+            return []
+        urls = []
+        for photo in photos[:3]:
+            if not isinstance(photo, dict) or not isinstance(photo.get("url"), str):
+                continue
+            urls.append(photo["url"].replace("http://", "https://", 1))
+        return urls
 
     def get_weather(self, city: str) -> list[dict[str, Any]]:
         adcode = self._get_city_adcode(city)

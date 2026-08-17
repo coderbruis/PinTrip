@@ -1,17 +1,34 @@
+import re
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+TRAVEL_QUERY_SUFFIX_PATTERN = re.compile(
+    r"(?:(?:旅游攻略|旅行攻略|自由行攻略|自驾攻略|游玩攻略|攻略|旅游|旅行|自由行|自驾游|游玩|行程|路线)\s*)+$"
+)
+
+
+def normalize_destination(value: str) -> str:
+    normalized = value.strip()
+    without_suffix = TRAVEL_QUERY_SUFFIX_PATTERN.sub("", normalized).strip()
+    return without_suffix or normalized
 
 
 class NaturalLanguageGuideRequest(BaseModel):
     trip_id: str = Field(min_length=1)
     prompt: str = Field(min_length=1)
-    destination: str | None = None
+    destination: str | None = Field(default=None, min_length=1)
     days: int | None = Field(default=None, ge=1, le=30)
     start_date: date | None = None
     transportation: str | None = None
     accommodation: str | None = None
     preferences: list[str] = Field(default_factory=list)
+
+    @field_validator("destination", mode="before")
+    @classmethod
+    def clean_destination(cls, value: str | None) -> str | None:
+        return normalize_destination(value) if value else value
 
 
 class ResolvedTripIntent(BaseModel):
@@ -32,8 +49,15 @@ class GuideItem(BaseModel):
 
 
 class GuideDay(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     day: int = Field(ge=1)
     title: str
+    image_url: str | None = Field(
+        default=None,
+        alias="imageUrl",
+        pattern=r"^https?://",
+    )
     items: list[GuideItem] = Field(min_length=1)
 
 

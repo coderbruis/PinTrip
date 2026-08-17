@@ -9,6 +9,8 @@ from .dependencies import WorkflowAgents
 from .parsing import parse_model
 from .state import GuideWorkflowState
 
+DEFAULT_TRIP_DAYS = 3
+
 
 class WorkflowError(RuntimeError):
     """Raised when the Agent workflow cannot produce a valid itinerary."""
@@ -22,15 +24,15 @@ class GuideWorkflowNodes:
     @log_workflow_node("resolve_intent")
     def resolve_intent(self, state: GuideWorkflowState) -> GuideWorkflowState:
         request = state["request"]
-        if request.destination and request.days and request.preferences:
+        if request.destination:
             logger.info(
-                "intent.fast_path trip_id=%s reason=structured_fields_complete",
+                "intent.fast_path trip_id=%s reason=destination_provided",
                 request.trip_id,
             )
             return {
                 "intent": ResolvedTripIntent(
                     destination=request.destination,
-                    days=request.days,
+                    days=request.days or DEFAULT_TRIP_DAYS,
                     transportation=request.transportation or "公共交通",
                     accommodation=request.accommodation or "舒适型酒店",
                     preferences=request.preferences,

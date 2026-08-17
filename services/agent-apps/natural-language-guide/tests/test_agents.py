@@ -10,7 +10,13 @@ from app.agents.weather import WeatherAgent
 
 class FakeAmapClient:
     def search_places(self, city: str, keywords: str) -> list[dict]:
-        return [{"name": "武侯祠", "address": "武侯祠大街231号"}]
+        return [
+            {
+                "name": "武侯祠",
+                "address": "武侯祠大街231号",
+                "photos": ["https://example.com/wuhouci.jpg"],
+            }
+        ]
 
     def get_weather(self, city: str) -> list[dict]:
         return [{"date": "2026-10-01", "dayweather": "晴"}]
@@ -29,7 +35,8 @@ class LangChainAgentsTest(unittest.TestCase):
 
         result = agent.research("成都", ["人文"], 2, "成都两日人文游")
 
-        self.assertEqual(result, "推荐武侯祠")
+        self.assertIn("推荐武侯祠", result)
+        self.assertIn("https://example.com/wuhouci.jpg", result)
 
     def test_weather_agent_combines_amap_data_with_llm(self) -> None:
         agent = WeatherAgent(
