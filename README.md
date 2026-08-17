@@ -12,9 +12,9 @@ pinTrip/
     extension/            # Chrome extension for Xiaohongshu imports
   services/
     api/                  # Spring Boot API for app/admin/plugin/agent
-    agents/
-      import-guide-agent/          # Generate itineraries from imported notes
-      natural-language-guide-agent/ # Generate itineraries from user prompts
+    agent-apps/                    # Independently deployable Agent applications
+      import-guide/                # Generate itineraries from imported notes
+      natural-language-guide/      # Generate itineraries from user prompts
   packages/
     shared-types/         # Shared TypeScript types not generated from OpenAPI
     api-client/           # Generated TypeScript API client
@@ -36,8 +36,8 @@ pnpm dev:admin
 pnpm dev:extension
 
 cd services/api && mvn spring-boot:run
-cd services/agents/import-guide-agent && python -m uvicorn app.main:app --reload --port 8090
-cd services/agents/natural-language-guide-agent && python -m uvicorn app.main:app --reload --port 8091
+cd services/agent-apps/import-guide && python -m uvicorn app.main:app --reload --port 8090
+cd services/agent-apps/natural-language-guide && python -m uvicorn app.main:app --reload --port 8091
 ```
 
 ## Service Boundaries
@@ -46,5 +46,5 @@ cd services/agents/natural-language-guide-agent && python -m uvicorn app.main:ap
 - `apps/admin`: users, import logs, task monitoring, prompt/template management.
 - `apps/extension`: captures Xiaohongshu note responses in the user's logged-in Chrome session.
 - `services/api`: owns auth, trips, source notes, itineraries, billing, audit, and agent task orchestration.
-- `services/agents/import-guide-agent`: owns imported-note understanding, place extraction, and itinerary generation.
-- `services/agents/natural-language-guide-agent`: owns user-intent understanding and prompt-based itinerary generation.
+- `services/agent-apps/import-guide`: owns imported-note understanding, place extraction, and itinerary generation.
+- `services/agent-apps/natural-language-guide`: uses four LangChain Agent roles and AMap Web Services for intent resolution, destination research, and itinerary generation.

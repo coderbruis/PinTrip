@@ -16,12 +16,12 @@ class ImportGuideRequest(BaseModel):
     source_notes: list[ImportedNote] = Field(default_factory=list)
 
 
-app = FastAPI(title="PinTrip Import Guide Agent")
+app = FastAPI(title="PinTrip Import Guide Service")
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "UP", "service": "pintrip-import-guide-agent"}
+    return {"status": "UP", "service": "pintrip-import-guide-service"}
 
 
 @app.post("/agent/import-guide/generate")
