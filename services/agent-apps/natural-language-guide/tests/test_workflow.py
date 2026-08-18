@@ -1,4 +1,6 @@
 import json
+import asyncio
+import threading
 import unittest
 
 from app.models import NaturalLanguageGuideRequest
@@ -124,7 +126,7 @@ class NaturalLanguageGuideWorkflowTest(unittest.TestCase):
         result = workflow.plan(
             NaturalLanguageGuideRequest(
                 trip_id="trip-1",
-                prompt="成都两日低强度美食旅行",
+                prompt="国庆想找一个适合美食和人文的国内城市，安排两天低强度旅行",
             )
         )
 
@@ -166,6 +168,41 @@ class NaturalLanguageGuideWorkflowTest(unittest.TestCase):
         self.assertTrue(
             any("intent.fast_path" in message for message in logs.output)
         )
+
+    def test_async_plan_runs_research_branches_concurrently(self) -> None:
+        barrier = threading.Barrier(2)
+
+        class ParallelAttractionAgent(FakeAttractionAgent):
+            def research(self, destination, keywords, days, prompt):
+                barrier.wait(timeout=1)
+                return super().research(destination, keywords, days, prompt)
+
+        class ParallelWeatherAgent(FakeWeatherAgent):
+            def research(self, destination, start_date):
+                barrier.wait(timeout=1)
+                return super().research(destination, start_date)
+
+        workflow = NaturalLanguageGuideWorkflow(
+            WorkflowAgents(
+                intent=FakeIntentAgent(),
+                attraction=ParallelAttractionAgent("景点研究结果"),
+                weather=ParallelWeatherAgent("天气研究结果"),
+                itinerary=FakeItineraryAgent(itinerary_response()),
+            )
+        )
+
+        result = asyncio.run(
+            workflow.aplan(
+                NaturalLanguageGuideRequest(
+                    trip_id="trip-parallel",
+                    prompt="成都",
+                    destination="成都",
+                    days=2,
+                )
+            )
+        )
+
+        self.assertEqual(2, len(result.days))
 
     def test_builds_expected_langgraph(self) -> None:
         workflow = self.build_workflow(FakeItineraryAgent(itinerary_response()))

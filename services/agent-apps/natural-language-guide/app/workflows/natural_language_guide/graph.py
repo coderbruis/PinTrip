@@ -53,18 +53,39 @@ class NaturalLanguageGuideWorkflow:
             state = self._graph.invoke(
                 {"request": request, "generation_attempts": 0}
             )
-            itinerary = state.get("itinerary")
-            if itinerary is None:
-                raise WorkflowError("Agent workflow completed without an itinerary")
-            return NaturalLanguageGuideResponse(
-                trip_id=request.trip_id,
-                original_prompt=request.prompt,
-                **itinerary.model_dump(),
-            )
+            return self._build_response(request, state)
         except WorkflowError:
             raise
         except Exception as error:
             raise WorkflowError(f"Agent workflow failed: {error}") from error
+
+    async def aplan(
+        self, request: NaturalLanguageGuideRequest
+    ) -> NaturalLanguageGuideResponse:
+        """Run independent research branches concurrently without blocking FastAPI."""
+        try:
+            state = await self._graph.ainvoke(
+                {"request": request, "generation_attempts": 0}
+            )
+            return self._build_response(request, state)
+        except WorkflowError:
+            raise
+        except Exception as error:
+            raise WorkflowError(f"Agent workflow failed: {error}") from error
+
+    @staticmethod
+    def _build_response(
+        request: NaturalLanguageGuideRequest,
+        state: GuideWorkflowState,
+    ) -> NaturalLanguageGuideResponse:
+        itinerary = state.get("itinerary")
+        if itinerary is None:
+            raise WorkflowError("Agent workflow completed without an itinerary")
+        return NaturalLanguageGuideResponse(
+            trip_id=request.trip_id,
+            original_prompt=request.prompt,
+            **itinerary.model_dump(),
+        )
 
 
 __all__ = ["NaturalLanguageGuideWorkflow", "WorkflowAgents", "WorkflowError"]

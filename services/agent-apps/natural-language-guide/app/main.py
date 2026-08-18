@@ -2,7 +2,6 @@ import logging
 from time import perf_counter
 
 from fastapi import FastAPI, HTTPException
-from fastapi.concurrency import run_in_threadpool
 
 from .config import AgentConfigurationError, get_settings
 from .factory import get_guide_workflow
@@ -41,7 +40,7 @@ async def generate_from_natural_language(
     )
     try:
         workflow = get_guide_workflow()
-        response = await run_in_threadpool(workflow.plan, request)
+        response = await workflow.aplan(request)
         logger.info(
             "request.completed trip_id=%s duration_ms=%d",
             request.trip_id,

@@ -10,6 +10,7 @@ target
 .env
 .env.local
 *.log
+*.tsbuildinfo
 __pycache__
 .venv
 *.egg-info

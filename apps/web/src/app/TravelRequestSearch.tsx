@@ -1,6 +1,15 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+
+import { GeneratedGuideView } from "./GeneratedGuideView";
+import { GuideEnhancementStatus } from "./GuideEnhancementStatus";
+import {
+  countGuideLocations,
+  EnhancementPhase,
+  GeneratedGuide,
+  GuideEnhancementResponse
+} from "./guideTypes";
 
 const searchExamples = [
   "成都三天美食游",
@@ -11,56 +20,60 @@ const searchExamples = [
   "川西三天看雪山"
 ];
 
-const unavailableTextMarkers = [
-  "数据缺失",
-  "数据不足",
-  "未返回",
-  "暂无",
-  "待补充",
-  "待生成",
-  "待定",
-  "警示版"
-];
-
-function isDisplayableText(value: string | null | undefined): value is string {
-  const normalized = value?.trim();
-  return Boolean(
-    normalized &&
-      !unavailableTextMarkers.some((marker) => normalized.includes(marker))
-  );
-}
-
-function isDisplayableImage(value: string | null | undefined): value is string {
-  return Boolean(value && /^https?:\/\//.test(value));
-}
-
-type GuideItem = {
-  time?: string;
-  place?: string;
-  activity?: string;
-};
-
-type GuideDay = {
-  day: number;
-  title?: string;
-  imageUrl?: string | null;
-  items: GuideItem[];
-};
-
-type GeneratedGuide = {
-  trip_id: string;
-  title?: string;
-  summary?: string;
-  days: GuideDay[];
-  budgetSummary?: string;
-  riskTips: string[];
-};
-
 export function TravelRequestSearch() {
   const [requestText, setRequestText] = useState("");
   const [guide, setGuide] = useState<GeneratedGuide | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [enhancementPhase, setEnhancementPhase] =
+    useState<EnhancementPhase>("idle");
+  const [sourceNoteCount, setSourceNoteCount] = useState(0);
+  const [activePrompt, setActivePrompt] = useState("");
+  const enhancementRequest = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => enhancementRequest.current?.abort();
+  }, []);
+
+  async function enhanceGuide(baseGuide: GeneratedGuide, prompt: string) {
+    enhancementRequest.current?.abort();
+    const controller = new AbortController();
+    enhancementRequest.current = controller;
+    setEnhancementPhase("enhancing");
+    setSourceNoteCount(0);
+
+    try {
+      const response = await fetch("/api/guides/enhance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, guide: baseGuide }),
+        signal: controller.signal
+      });
+      const payload = (await response.json()) as
+        | GuideEnhancementResponse
+        | { error?: string };
+      if (!response.ok || !("guide" in payload)) {
+        throw new Error("小红书内容增强暂不可用");
+      }
+      if (payload.enhancementStatus === "unavailable") {
+        setEnhancementPhase("failed");
+        return;
+      }
+      setGuide(payload.guide);
+      setSourceNoteCount(
+        payload.sourceNoteCount ?? payload.guide.sourceNoteIds?.length ?? 0
+      );
+      setEnhancementPhase("completed");
+    } catch (enhancementError) {
+      if (
+        enhancementError instanceof DOMException &&
+        enhancementError.name === "AbortError"
+      ) {
+        return;
+      }
+      setEnhancementPhase("failed");
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -72,6 +85,10 @@ export function TravelRequestSearch() {
     setIsLoading(true);
     setError("");
     setGuide(null);
+    setEnhancementPhase("idle");
+    setSourceNoteCount(0);
+    setActivePrompt(normalizedRequest);
+    enhancementRequest.current?.abort();
 
     try {
       const response = await fetch("/api/guides/generate", {
@@ -83,7 +100,9 @@ export function TravelRequestSearch() {
       if (!response.ok) {
         throw new Error(payload.error || "攻略生成失败，请稍后重试");
       }
-      setGuide(payload);
+      const baseGuide = payload as GeneratedGuide;
+      setGuide(baseGuide);
+      void enhanceGuide(baseGuide, normalizedRequest);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -111,7 +130,7 @@ export function TravelRequestSearch() {
           value={requestText}
         />
         <button disabled={isLoading} type="submit">
-          {isLoading ? "生成中…" : "搜索"}
+          {isLoading ? "生成基础攻略…" : "搜索"}
         </button>
       </form>
 
@@ -130,65 +149,18 @@ export function TravelRequestSearch() {
       ) : null}
 
       {guide ? (
-        <section className="generated-guide" aria-live="polite">
-          <p className="eyebrow">AI 攻略已生成</p>
-          {isDisplayableText(guide.title) ? <h2>{guide.title}</h2> : null}
-          {isDisplayableText(guide.summary) ? <p>{guide.summary}</p> : null}
-          <div className="generated-guide-days">
-            {guide.days.map((day) => {
-              const items = day.items.filter(
-                (item) =>
-                  isDisplayableText(item.time) ||
-                  isDisplayableText(item.place) ||
-                  isDisplayableText(item.activity)
-              );
-              return (
-                <article key={day.day}>
-                  {isDisplayableImage(day.imageUrl) ? (
-                    <img
-                      alt={
-                        isDisplayableText(day.title)
-                          ? day.title
-                          : `第 ${day.day} 天行程`
-                      }
-                      className="generated-guide-day-image"
-                      loading="lazy"
-                      src={day.imageUrl}
-                    />
-                  ) : null}
-                  <div className="generated-guide-day-body">
-                    <h3>
-                      第 {day.day} 天
-                      {isDisplayableText(day.title) ? ` · ${day.title}` : ""}
-                    </h3>
-                    {items.length ? (
-                      <ol>
-                        {items.map((item, index) => (
-                          <li key={`${day.day}-${index}`}>
-                            {isDisplayableText(item.time) ? (
-                              <time>{item.time}</time>
-                            ) : null}
-                            <div>
-                              {isDisplayableText(item.place) ? (
-                                <strong>{item.place}</strong>
-                              ) : null}
-                              {isDisplayableText(item.activity) ? (
-                                <p>{item.activity}</p>
-                              ) : null}
-                            </div>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-          {isDisplayableText(guide.budgetSummary) ? (
-            <p className="generated-guide-budget">预算：{guide.budgetSummary}</p>
-          ) : null}
-        </section>
+        <GeneratedGuideView
+          enhancementStatus={
+            <GuideEnhancementStatus
+              onRetry={() => void enhanceGuide(guide, activePrompt)}
+              phase={enhancementPhase}
+              sourceNoteCount={sourceNoteCount}
+              totalLocations={countGuideLocations(guide)}
+            />
+          }
+          guide={guide}
+          isEnhanced={enhancementPhase === "completed"}
+        />
       ) : null}
     </div>
   );

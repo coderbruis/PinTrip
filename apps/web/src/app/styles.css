@@ -724,6 +724,124 @@ button {
   line-height: 1.7;
 }
 
+.guide-enhancement {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0 4px;
+  padding: 16px;
+  border: 1px solid #ded7cb;
+  border-radius: 12px;
+  background: #fffaf1;
+}
+
+.enhancement-heading,
+.guide-enhancement.is-degraded {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.enhancement-heading {
+  justify-content: flex-start;
+}
+
+.enhancement-heading strong,
+.guide-enhancement.is-degraded strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.enhancement-heading p,
+.guide-enhancement.is-degraded p {
+  margin: 0;
+  color: #70695f;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.enhancement-spinner,
+.enhancement-check {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.enhancement-spinner {
+  border: 3px solid rgba(79, 143, 123, 0.2);
+  border-top-color: #4f8f7b;
+  animation: enhancement-spin 900ms linear infinite;
+}
+
+.enhancement-check {
+  background: #4f8f7b;
+  color: #fff;
+  font-weight: 800;
+}
+
+.enhancement-progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8e1d6;
+}
+
+.enhancement-progress span {
+  width: 38%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: #4f8f7b;
+  animation: enhancement-progress 1.4s ease-in-out infinite;
+}
+
+.enhancement-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.enhancement-tags span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(79, 143, 123, 0.12);
+  color: #376c5c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.guide-enhancement.is-degraded {
+  border-color: rgba(138, 93, 39, 0.24);
+  background: #fff8ea;
+}
+
+.guide-enhancement.is-degraded button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #8a5d27;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+@keyframes enhancement-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes enhancement-progress {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(280%);
+  }
+}
+
 .generated-guide-days {
   display: grid;
   gap: 10px;
@@ -788,6 +906,23 @@ button {
 .generated-guide-budget {
   margin-bottom: 0;
   font-weight: 700;
+}
+
+.generated-guide-risks {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff8ea;
+}
+
+.generated-guide-risks ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: #665f54;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .workspace-grid {
@@ -1279,6 +1414,11 @@ button {
     border-radius: 18px;
     padding: 14px;
     text-align: left;
+  }
+
+  .guide-enhancement.is-degraded {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .trip-card-grid {

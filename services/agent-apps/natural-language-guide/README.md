@@ -1,15 +1,16 @@
 # PinTrip Natural-language Guide Service
 
 This service turns a free-form travel request into the PinTrip itinerary schema.
-It uses four small LangChain agents for intent resolution, AMap-backed attraction
-and weather research, and final itinerary planning. LangGraph owns workflow state,
-parallel research fan-out/join, validation routing, and bounded retries.
+It uses LLM agents for complex intent resolution and final itinerary planning,
+plus lightweight AMap-backed attraction and weather research. LangGraph owns
+workflow state, parallel research fan-out/join, validation routing, and bounded
+retries.
 
 Agent directories:
 
 - `app/agents/intent`: converts natural language into structured trip intent.
-- `app/agents/attraction`: searches AMap places and summarizes candidates.
-- `app/agents/weather`: queries AMap weather and summarizes travel risks.
+- `app/agents/attraction`: searches and normalizes AMap places without an LLM call.
+- `app/agents/weather`: queries and normalizes AMap forecasts without an LLM call.
 - `app/agents/itinerary`: combines the research into PinTrip's itinerary schema.
 
 The deployable service lives under `services/agent-apps`; its internal Agent
@@ -53,17 +54,18 @@ The response keeps PinTrip's `title`, `summary`, `sourceNoteIds`, `days`,
 credentials are missing and `502` when the Agent workflow cannot produce valid
 structured output.
 
-The web search box sends its text as `prompt` without a structured destination,
-so the Intent Agent resolves the destination, trip length, transportation, and
-preferences before research begins.
+The web search box sends its text as `prompt`. Unambiguous single-destination
+prompts such as `成都两天美食游` use a local fast path. Complex and multi-city
+prompts fall back to the Intent Agent.
 
 ## Runtime progress
 
 The console logs request and LangGraph node progress with `trip_id` and
 `duration_ms`. Attraction and weather logs start together because those nodes run
-in parallel. Requests that include `destination` use the structured fast path
-and avoid an extra intent LLM call. When `days` is omitted, the workflow defaults
-to a three-day itinerary. Prompts and API keys are never written to these
-progress logs.
+in parallel through the async graph. They no longer make intermediate LLM calls;
+their normalized AMap results are consumed by the final itinerary Agent. Requests
+that include `destination`, and simple prompts recognized locally, avoid an extra
+intent LLM call. When `days` is omitted, the workflow defaults to a three-day
+itinerary. Prompts and API keys are never written to these progress logs.
 
 See [NOTICE.md](NOTICE.md) for the adapted upstream example and license notice.

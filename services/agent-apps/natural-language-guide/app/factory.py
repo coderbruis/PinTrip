@@ -28,8 +28,8 @@ def get_guide_workflow() -> NaturalLanguageGuideWorkflow:
 
     agents = WorkflowAgents(
         intent=IntentAgent(llm),
-        attraction=AttractionAgent(llm, amap_client),
-        weather=WeatherAgent(llm, amap_client),
+        attraction=AttractionAgent(amap_client),
+        weather=WeatherAgent(amap_client),
         itinerary=ItineraryAgent(llm),
     )
     return NaturalLanguageGuideWorkflow(agents)

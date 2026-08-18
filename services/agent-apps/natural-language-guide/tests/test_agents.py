@@ -9,7 +9,9 @@ from app.agents.weather import WeatherAgent
 
 
 class FakeAmapClient:
-    def search_places(self, city: str, keywords: str) -> list[dict]:
+    def search_places(
+        self, city: str, keywords: str, limit: int = 20
+    ) -> list[dict]:
         return [
             {
                 "name": "武侯祠",
@@ -28,22 +30,22 @@ class LangChainAgentsTest(unittest.TestCase):
 
         self.assertEqual(agent.resolve("去成都玩"), '{"destination":"成都"}')
 
-    def test_attraction_agent_combines_amap_data_with_llm(self) -> None:
-        agent = AttractionAgent(
-            FakeListChatModel(responses=["推荐武侯祠"]), FakeAmapClient()
-        )
+    def test_attraction_agent_returns_amap_data_without_llm(self) -> None:
+        agent = AttractionAgent(FakeAmapClient())
 
         result = agent.research("成都", ["人文"], 2, "成都两日人文游")
 
-        self.assertIn("推荐武侯祠", result)
+        self.assertIn('"source": "amap"', result)
+        self.assertIn("武侯祠", result)
         self.assertIn("https://example.com/wuhouci.jpg", result)
 
-    def test_weather_agent_combines_amap_data_with_llm(self) -> None:
-        agent = WeatherAgent(
-            FakeListChatModel(responses=["天气晴朗"]), FakeAmapClient()
-        )
+    def test_weather_agent_returns_amap_data_without_llm(self) -> None:
+        agent = WeatherAgent(FakeAmapClient())
 
-        self.assertEqual(agent.research("成都", None), "天气晴朗")
+        result = agent.research("成都", None)
+
+        self.assertIn('"source": "amap"', result)
+        self.assertIn('"dayweather": "晴"', result)
 
     def test_itinerary_agent_uses_langchain_model(self) -> None:
         agent = ItineraryAgent(FakeListChatModel(responses=["{}"]))

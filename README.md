@@ -39,12 +39,13 @@ flowchart TB
     end
 
     subgraph Gateway["接口层"]
-        WEB_API["Next.js 服务端代理<br/>/api/guides/generate"]
+        WEB_API["Next.js 服务端代理<br/>generate / enhance"]
         JAVA_API["PinTrip Java API<br/>Spring Boot"]
     end
 
     subgraph AgentServices["Agent 服务层"]
         NATURAL["自然语言攻略服务<br/>FastAPI :8091"]
+        XHS_AGENT["小红书攻略增强<br/>FastAPI :8093"]
         IMPORT["导入攻略服务<br/>FastAPI :8090（脚手架）"]
 
         subgraph Workflow["LangGraph 工作流"]
@@ -59,11 +60,14 @@ flowchart TB
     subgraph External["外部能力"]
         LLM["OpenAI 兼容大模型"]
         AMAP["高德地图 Web Service<br/>地点 / 天气 / 图片"]
+        CRAWLER["小红书抓取 API<br/>FastAPI :8092"]
+        XHS["小红书内容接口"]
     end
 
     USER --> WEB
     WEB --> WEB_API
     WEB_API --> NATURAL
+    WEB_API --> XHS_AGENT
     NATURAL --> INTENT
     INTENT --> ATTRACTION
     INTENT --> WEATHER
@@ -73,9 +77,10 @@ flowchart TB
     VALIDATE --> WEB_API
 
     INTENT --> LLM
-    ATTRACTION --> LLM
-    WEATHER --> LLM
     ITINERARY --> LLM
+    XHS_AGENT --> LLM
+    XHS_AGENT --> CRAWLER
+    CRAWLER --> XHS
     ATTRACTION --> AMAP
     WEATHER --> AMAP
 
@@ -112,7 +117,7 @@ flowchart LR
     CHECK -->|重试耗尽| FAILED
 ```
 
-景点研究和天气研究由 LangGraph 并行执行，两个节点都完成后才进入行程生成。生成结果必须通过 Pydantic Schema 和旅行天数校验；失败时最多再修复一次，避免无限重试。
+景点研究和天气研究由 LangGraph 异步并行执行，直接返回标准化高德数据，不再分别调用大模型。两个节点都完成后才进入行程生成。简单的单目的地请求会通过本地快路径跳过意图模型，复杂请求仍由意图 Agent 解析。生成结果必须通过 Pydantic Schema 和旅行天数校验；失败时最多再修复一次，避免无限重试。
 
 ## 系统运行效果
 
@@ -155,9 +160,11 @@ PinTrip/
 │   └── admin/                       # 运营管理后台
 ├── services/
 │   ├── api/                         # Spring Boot API
+│   ├── crawler-api/                 # 小红书笔记与评论抓取接口
 │   └── agent-apps/
 │       ├── import-guide/            # 导入笔记生成攻略（脚手架）
-│       └── natural-language-guide/  # 自然语言生成攻略（LangGraph）
+│       ├── natural-language-guide/  # 自然语言生成基础攻略（LangGraph）
+│       └── xhs-guide-enhancer/      # 小红书内容筛选与攻略增强
 ├── packages/
 │   └── tsconfig/                    # 共享 TypeScript 配置
 ├── assets/
@@ -199,6 +206,14 @@ services/agent-apps/natural-language-guide/app/
 - pnpm 9.15+
 - Python 3.11+
 - Java 21 和 Maven 3.9+（仅启动 Java API 时需要）
+
+首次拉取项目时初始化固定版本的 Spider_XHS 子模块：
+
+```bash
+git submodule update --init --recursive
+```
+
+该子模块当前仅用于本地学习和技术验证，具体安装与配置参见 `services/crawler-api/README.md`。
 
 ### 1. 安装前端依赖
 
@@ -320,6 +335,8 @@ mvn -q -f services/api/pom.xml test
 | 意图、景点、天气、行程四 Agent 协作 | 已实现 |
 | LangGraph 并行研究、校验和重试 | 已实现 |
 | 高德真实地点、天气和每日图片 | 已实现 |
+| 小红书关键词抓取 API 适配层 | 已实现，Spider_XHS 已按固定版本作为 Submodule 引入 |
+| 小红书笔记按时间倒序、筛选与攻略增强 | 已实现 |
 | 导入笔记到导入 Agent 的任务编排 | 待接入 |
 | 管理后台真实业务接口 | 待接入 |
 | 数据库存储、任务队列和用户鉴权 | 待实现 |

@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from ...models import GeneratedItinerary, ResolvedTripIntent
 from ...observability import log_workflow_node, logger
 from .dependencies import WorkflowAgents
+from .intent_parser import parse_simple_trip_intent
 from .parsing import parse_model
 from .state import GuideWorkflowState
 
@@ -38,6 +39,14 @@ class GuideWorkflowNodes:
                     preferences=request.preferences,
                 )
             }
+
+        parsed_intent = parse_simple_trip_intent(request.prompt)
+        if parsed_intent is not None:
+            logger.info(
+                "intent.fast_path trip_id=%s reason=simple_prompt",
+                request.trip_id,
+            )
+            return {"intent": parsed_intent}
 
         query = f"""请解析以下旅行需求，并按Schema返回JSON。
 
