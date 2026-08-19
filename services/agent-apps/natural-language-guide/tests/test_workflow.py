@@ -3,6 +3,8 @@ import asyncio
 import threading
 import unittest
 
+from app.agents.weather import WeatherAgent
+from app.infrastructure.amap_client import AmapClientError
 from app.models import NaturalLanguageGuideRequest
 from app.workflows import NaturalLanguageGuideWorkflow, WorkflowAgents, WorkflowError
 
@@ -44,6 +46,11 @@ class FakeWeatherAgent:
 
     def research(self, destination: str, start_date) -> str:
         return self.response
+
+
+class FailingWeatherAmapClient:
+    def get_weather(self, city: str) -> list[dict]:
+        raise AmapClientError(f"cannot resolve city adcode: {city}")
 
 
 class FakeItineraryAgent:
@@ -203,6 +210,69 @@ class NaturalLanguageGuideWorkflowTest(unittest.TestCase):
         )
 
         self.assertEqual(2, len(result.days))
+
+    def test_weather_failure_does_not_block_itinerary_generation(self) -> None:
+        itinerary_agent = FakeItineraryAgent(itinerary_response())
+        workflow = NaturalLanguageGuideWorkflow(
+            WorkflowAgents(
+                intent=FakeIntentAgent(),
+                attraction=FakeAttractionAgent("景点研究结果"),
+                weather=WeatherAgent(FailingWeatherAmapClient()),
+                itinerary=itinerary_agent,
+            )
+        )
+
+        result = workflow.plan(
+            NaturalLanguageGuideRequest(
+                trip_id="trip-weather-unavailable",
+                prompt="未知景区玩两天",
+                destination="未知景区",
+                days=2,
+            )
+        )
+
+        self.assertEqual(2, len(result.days))
+        self.assertIn('"available": false', itinerary_agent.queries[0])
+
+    def test_fills_missing_day_images_from_amap_research(self) -> None:
+        response = json.loads(itinerary_response())
+        response["days"][0].pop("imageUrl")
+        response["days"][1].pop("imageUrl")
+        attraction_research = json.dumps(
+            {
+                "source": "amap",
+                "places": [
+                    {
+                        "name": "地点1",
+                        "photos": ["https://example.com/amap-place-1.jpg"],
+                    },
+                    {
+                        "name": "地点2",
+                        "photos": ["https://example.com/amap-place-2.jpg"],
+                    },
+                ],
+            },
+            ensure_ascii=False,
+        )
+        workflow = NaturalLanguageGuideWorkflow(
+            WorkflowAgents(
+                intent=FakeIntentAgent(intent_response()),
+                attraction=FakeAttractionAgent(attraction_research),
+                weather=FakeWeatherAgent("天气研究结果"),
+                itinerary=FakeItineraryAgent(json.dumps(response, ensure_ascii=False)),
+            )
+        )
+
+        result = workflow.plan(
+            NaturalLanguageGuideRequest(trip_id="trip-images", prompt="成都两日游")
+        )
+
+        self.assertEqual(
+            "https://example.com/amap-place-1.jpg", result.days[0].image_url
+        )
+        self.assertEqual(
+            "https://example.com/amap-place-2.jpg", result.days[1].image_url
+        )
 
     def test_builds_expected_langgraph(self) -> None:
         workflow = self.build_workflow(FakeItineraryAgent(itinerary_response()))

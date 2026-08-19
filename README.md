@@ -2,7 +2,7 @@
 
 PinTrip 是一个 AI 旅行攻略生成平台。用户可以用自然语言描述目的地、旅行天数、交通方式和兴趣偏好，系统通过多 Agent 协作完成需求解析、景点与天气研究，并生成包含每日行程、预算和实景图片的结构化攻略。
 
-项目同时包含 Java API、管理后台和两个职责独立的攻略 Agent，为后续扩展数据来源和攻略生成能力预留了清晰边界。
+项目同时包含 Java API、管理后台和多个职责独立的攻略 Agent，为后续扩展数据来源和攻略生成能力预留了清晰边界。
 
 ## 核心功能
 
@@ -19,6 +19,15 @@ PinTrip 是一个 AI 旅行攻略生成平台。用户可以用自然语言描�
 - 天气 Agent：解析城市行政区编码并查询天气预报和旅行风险。
 - 行程 Agent：综合用户需求、景点和天气信息，生成逐日攻略。
 - LangGraph：管理共享状态、并行研究、结果汇合、校验和失败重试。
+
+### 小红书真实笔记参考增强
+
+- 基础攻略生成后，异步提取行程地点并调用 Spider_XHS 按关键词搜索相关笔记。
+- 获取笔记标题、正文以及一级、二级评论，按发布时间倒序并通过 `note_id` 去重。
+- GuideMerger Agent 从真实游客内容中提炼游玩建议、时间安排、本地体验和避坑信息，再合并回基础攻略。
+- 增强结果记录 `sourceNoteIds`，前端展示参考笔记数量和增强状态。
+- 抓取或增强服务不可用时自动保留基础攻略，不影响主流程；小红书图片不会写入攻略，页面图片继续使用高德返回的可信地址。
+- 支持 Cookie、扫码和手机号三种登录方式；扫码或手机号会话在 crawler-api 进程内复用。
 
 ### 结构化攻略展示
 
@@ -91,33 +100,100 @@ flowchart TB
 
 实线表示当前已经接通的主要调用链路，虚线表示已建立模块但尚未完成的业务集成。
 
-## 自然语言 Agent 调用流程
+## 两阶段攻略生成流程
+
+当前 PinTrip 的主链路采用“两阶段生成”：先生成并展示基础攻略，再异步抓取小红书笔记与评论进行增强。第二阶段不可用时保留基础攻略，不阻断用户查看和使用。
 
 ```mermaid
-flowchart LR
-    START(["接收旅行需求"])
-    INTENT["解析意图<br/>目的地 / 天数 / 偏好"]
-    ATTRACTION["景点研究<br/>地点 / 坐标 / 图片"]
-    WEATHER["天气研究<br/>预报 / 风险"]
-    PLAN["生成逐日攻略"]
-    CHECK{"Schema 与天数<br/>校验通过？"}
-    REPAIR["携带错误信息<br/>修复输出"]
-    FAILED["返回明确错误"]
-    END(["返回结构化攻略"])
+flowchart TB
+    USER(["用户输入自然语言旅行需求"])
+    WEB["Web 页面<br/>Next.js + React :3000"]
+    GENERATE_API["Next.js API<br/>POST /api/guides/generate"]
 
-    START --> INTENT
-    INTENT --> ATTRACTION
-    INTENT --> WEATHER
-    ATTRACTION --> PLAN
-    WEATHER --> PLAN
-    PLAN --> CHECK
-    CHECK -->|通过| END
-    CHECK -->|失败且未达到上限| REPAIR
-    REPAIR --> PLAN
-    CHECK -->|重试耗尽| FAILED
+    subgraph PHASE_ONE["阶段一：生成基础攻略"]
+        NATURAL["自然语言攻略服务<br/>FastAPI :8091"]
+        INTENT_ROUTE{"简单需求？"}
+        FAST_INTENT["本地快速解析<br/>目的地 / 天数 / 偏好"]
+        LLM_INTENT["意图 Agent + LLM<br/>处理复杂表达"]
+        ATTRACTION["景点 Agent<br/>高德 POI / 坐标 / 图片"]
+        WEATHER["天气 Agent<br/>高德天气 / 风险<br/>不可用时降级跳过"]
+        ITINERARY["行程 Agent + LLM<br/>生成逐日结构化攻略"]
+        BASE_CHECK{"Schema 与旅行天数<br/>校验通过？"}
+        REPAIR["携带错误信息重新生成<br/>最多一次"]
+        BASE_GUIDE["基础攻略"]
+        BASE_FAILED["返回明确的生成错误"]
+
+        NATURAL --> INTENT_ROUTE
+        INTENT_ROUTE -->|是| FAST_INTENT
+        INTENT_ROUTE -->|否| LLM_INTENT
+        FAST_INTENT --> ATTRACTION
+        FAST_INTENT --> WEATHER
+        LLM_INTENT --> ATTRACTION
+        LLM_INTENT --> WEATHER
+        ATTRACTION --> ITINERARY
+        WEATHER --> ITINERARY
+        ITINERARY --> BASE_CHECK
+        BASE_CHECK -->|失败且可重试| REPAIR
+        REPAIR --> ITINERARY
+        BASE_CHECK -->|通过| BASE_GUIDE
+        BASE_CHECK -->|重试耗尽| BASE_FAILED
+    end
+
+    DISPLAY["页面立即展示基础攻略"]
+    ENHANCE_API["Next.js API<br/>POST /api/guides/enhance"]
+
+    subgraph PHASE_TWO["阶段二：小红书异步增强"]
+        ENHANCER["XHS 攻略增强服务<br/>FastAPI :8093"]
+        LOCATIONS["提取并去重攻略地点<br/>默认最多 8 个"]
+        KEYWORDS["为每个地点生成关键词<br/>攻略标题 + 地点 + 游玩攻略 + 避坑"]
+        CONCURRENT["有限并发抓取<br/>默认并发 3，每地点一次请求"]
+        CRAWLER["crawler-api<br/>FastAPI :8092"]
+        SESSION{"Spider_XHS<br/>已有登录态？"}
+        LOGIN["Cookie / 扫码 / 手机号登录<br/>首次初始化后进程内复用"]
+        SEARCH["关键词搜索<br/>最新排序，每地点默认 5 篇"]
+        DETAILS["逐篇获取完整笔记正文"]
+        COMMENTS["分页获取一级、二级评论<br/>二级评论扁平化"]
+        NORMALIZE["标准化笔记与评论"]
+        EVIDENCE["按时间倒序、note_id 去重<br/>默认最多保留 20 篇证据"]
+        HAS_EVIDENCE{"存在有效证据？"}
+        MERGER["GuideMerger Agent + LLM<br/>提炼建议并合并基础攻略"]
+        ENHANCE_CHECK{"Schema 合法且<br/>旅行天数不变？"}
+        FINAL["增强后的最终攻略<br/>包含 sourceNoteIds"]
+        DEGRADED["降级：保留基础攻略<br/>enhancementStatus = unavailable"]
+
+        ENHANCER --> LOCATIONS --> KEYWORDS --> CONCURRENT --> CRAWLER
+        CRAWLER --> SESSION
+        SESSION -->|是| SEARCH
+        SESSION -->|否| LOGIN --> SEARCH
+        SEARCH --> DETAILS --> COMMENTS --> NORMALIZE --> EVIDENCE
+        EVIDENCE --> HAS_EVIDENCE
+        HAS_EVIDENCE -->|是| MERGER --> ENHANCE_CHECK
+        HAS_EVIDENCE -->|否| DEGRADED
+        ENHANCE_CHECK -->|通过| FINAL
+        ENHANCE_CHECK -->|不通过或调用失败| DEGRADED
+    end
+
+    LLM["OpenAI 兼容大模型"]
+    AMAP["高德地图 Web Service"]
+    XHS["小红书 Web 内容接口"]
+
+    USER --> WEB --> GENERATE_API --> NATURAL
+    BASE_GUIDE --> DISPLAY
+    DISPLAY -.->|展示后立即异步调用| ENHANCE_API --> ENHANCER
+    FINAL --> WEB
+    DEGRADED --> WEB
+
+    LLM_INTENT -.-> LLM
+    ITINERARY -.-> LLM
+    MERGER -.-> LLM
+    ATTRACTION -.-> AMAP
+    WEATHER -.-> AMAP
+    SEARCH -.-> XHS
+    DETAILS -.-> XHS
+    COMMENTS -.-> XHS
 ```
 
-景点研究和天气研究由 LangGraph 异步并行执行，直接返回标准化高德数据，不再分别调用大模型。两个节点都完成后才进入行程生成。简单的单目的地请求会通过本地快路径跳过意图模型，复杂请求仍由意图 Agent 解析。生成结果必须通过 Pydantic Schema 和旅行天数校验；失败时最多再修复一次，避免无限重试。
+阶段一中，景点研究和天气研究由 LangGraph 异步并行执行；简单的单目的地请求走本地快速解析，复杂表达才调用意图模型。基础攻略通过 Pydantic Schema 和旅行天数校验后立即展示。阶段二从攻略中提取地点，有限并发调用 Spider_XHS 获取笔记正文和评论，再由 GuideMerger Agent 合并有效证据。任何抓取、合并或增强校验失败都会降级为基础攻略。
 
 ## 系统运行效果
 
@@ -127,11 +203,17 @@ flowchart LR
 
 ![自然语言生成旅行攻略](assets/readme/system-guide-generation.png)
 
-### 每日行程与预算明细
+### 每日行程明细
 
-生成结果按天展示时间、地点、活动安排及预算信息。
+生成结果按天展示时间、地点、活动、交通方式和实景图片。
 
-![每日行程与预算明细](assets/readme/system-guide-itinerary-details.png)
+![每日行程明细](assets/readme/system-guide-itinerary-details.png)
+
+### 预算与出行提醒
+
+攻略末尾汇总住宿、课程、餐饮和交通预算，并提供天气、预约及避坑提醒。
+
+![预算与出行提醒](assets/readme/system-guide-budget-and-tips.png)
 
 ### 灵感路线浏览
 
@@ -255,7 +337,77 @@ LLM_BASE_URL=https://你的模型服务地址/v1
 curl http://127.0.0.1:8091/health
 ```
 
-### 3. 启动 Web 用户端
+### 3. 配置并启动小红书抓取与攻略增强（可选）
+
+安装 crawler-api 及 Spider_XHS 依赖：
+
+```bash
+cd services/crawler-api
+python3 -m venv .venv
+.venv/bin/pip install -e .
+.venv/bin/pip install -r vendor/Spider_XHS/requirements.txt
+npm ci --prefix vendor/Spider_XHS
+cp .env.example .env
+```
+
+在 `services/crawler-api/.env` 中选择一种登录方式：
+
+```dotenv
+# cookie / qrcode / phone
+XHS_LOGIN_TYPE=qrcode
+
+# 仅 cookie 模式需要，必须包含 a1 和 web_session
+# XHS_COOKIES=你的完整Cookie
+```
+
+`qrcode` 和 `phone` 不要求预先配置 Cookie。首次抓取时，终端会提示扫码或输入手机号及短信验证码；登录会话在当前 crawler-api 进程内复用，服务重启后需要重新登录。
+
+启动抓取 API：
+
+```bash
+.venv/bin/python -m uvicorn app.main:app \
+  --host 127.0.0.1 \
+  --port 8092 \
+  --reload
+```
+
+新开终端，安装并启动小红书攻略增强 Agent：
+
+```bash
+cd services/agent-apps/xhs-guide-enhancer
+python3 -m venv .venv
+.venv/bin/pip install -e .
+cp .env.example .env
+```
+
+在 `services/agent-apps/xhs-guide-enhancer/.env` 中配置：
+
+```dotenv
+CRAWLER_API_URL=http://127.0.0.1:8092
+LLM_API_KEY=你的大模型Key
+LLM_MODEL_ID=gpt-4o-mini
+# LLM_BASE_URL=https://你的模型服务地址/v1
+```
+
+启动增强 Agent：
+
+```bash
+.venv/bin/python -m uvicorn app.main:app \
+  --host 127.0.0.1 \
+  --port 8093 \
+  --reload
+```
+
+检查两个服务：
+
+```bash
+curl http://127.0.0.1:8092/health
+curl http://127.0.0.1:8093/health
+```
+
+更完整的安装、登录及抓取参数说明见 [`services/crawler-api/README.md`](services/crawler-api/README.md) 和 [`services/agent-apps/xhs-guide-enhancer/README.md`](services/agent-apps/xhs-guide-enhancer/README.md)。
+
+### 4. 启动 Web 用户端
 
 新开一个终端，在项目根目录执行：
 
@@ -271,9 +423,16 @@ Web 服务端代理默认访问 `http://127.0.0.1:8091`。如需修改 Agent 地
 cp apps/web/.env.example apps/web/.env.local
 ```
 
-然后修改 `NATURAL_LANGUAGE_GUIDE_AGENT_URL`。
+然后确认两个 Agent 地址：
 
-### 4. 启动其他模块（可选）
+```dotenv
+NATURAL_LANGUAGE_GUIDE_AGENT_URL=http://127.0.0.1:8091
+XHS_GUIDE_AGENT_URL=http://127.0.0.1:8093
+```
+
+只启动自然语言 Agent 时仍可生成基础攻略；未启动小红书抓取与增强服务时，页面会自动保留基础攻略。
+
+### 5. 启动其他模块（可选）
 
 ```bash
 # Java API：http://localhost:8080
@@ -291,8 +450,13 @@ pnpm dev:agent:import
 | 服务 | 方法与路径 | 说明 |
 | --- | --- | --- |
 | Web | `POST /api/guides/generate` | 校验自然语言需求并代理到 Agent |
+| Web | `POST /api/guides/enhance` | 异步请求小红书真实笔记增强，失败时返回基础攻略 |
 | 自然语言 Agent | `GET /health` | 检查模型和高德配置是否齐全 |
 | 自然语言 Agent | `POST /agent/natural-language-guide/generate` | 生成结构化旅行攻略 |
+| 小红书抓取 API | `GET /health` | 检查 Spider_XHS 路径及登录配置 |
+| 小红书抓取 API | `POST /crawl/xhs/search` | 按关键词抓取笔记正文及一级、二级评论 |
+| 小红书增强 Agent | `GET /health` | 检查抓取地址和模型配置 |
+| 小红书增强 Agent | `POST /agent/xhs-guide/enhance` | 用真实笔记证据增强基础攻略 |
 | 导入攻略 Agent | `GET /health` | 导入 Agent 健康检查 |
 | 导入攻略 Agent | `POST /agent/import-guide/generate` | 导入笔记攻略接口（当前为脚手架） |
 | Java API | `GET /api/health` | Java 服务健康检查 |

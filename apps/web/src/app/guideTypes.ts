@@ -2,6 +2,8 @@ export type GuideItem = {
   time?: string;
   place?: string;
   activity?: string;
+  transport?: string | null;
+  tips?: string[];
 };
 
 export type GuideDay = {

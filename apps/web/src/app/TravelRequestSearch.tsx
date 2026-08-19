@@ -88,6 +88,7 @@ export function TravelRequestSearch() {
     setEnhancementPhase("idle");
     setSourceNoteCount(0);
     setActivePrompt(normalizedRequest);
+    setRequestText("");
     enhancementRequest.current?.abort();
 
     try {
@@ -114,25 +115,72 @@ export function TravelRequestSearch() {
     }
   }
 
+  const searchForm = (className: string) => (
+    <form className={className} onSubmit={handleSubmit}>
+      <span className="search-label">旅行需求</span>
+      <input
+        aria-label="旅行需求"
+        autoComplete="off"
+        maxLength={200}
+        name="prompt"
+        onChange={(event) => setRequestText(event.target.value)}
+        placeholder="继续提问，或输入新的旅行需求"
+        required
+        type="search"
+        value={requestText}
+      />
+      <button disabled={isLoading} type="submit">
+        {isLoading ? "分析中…" : activePrompt ? "发送" : "搜索"}
+      </button>
+    </form>
+  );
+
+  if (activePrompt) {
+    return (
+      <div className="travel-request-search is-conversation">
+        <section className="guide-conversation" aria-label="旅游攻略生成结果">
+          <header className="guide-conversation-header">旅游攻略</header>
+          <div className="guide-conversation-thread">
+            <p className="guide-user-message">{activePrompt}</p>
+
+            {isLoading ? (
+              <div className="guide-analysis-status" role="status">
+                <span className="enhancement-spinner" aria-hidden="true" />
+                <span>问题分析中</span>
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="guide-conversation-error" role="alert">
+                <strong>这次没有生成成功</strong>
+                <p>{error}</p>
+              </div>
+            ) : null}
+
+            {guide ? (
+              <GeneratedGuideView
+                enhancementStatus={
+                  <GuideEnhancementStatus
+                    onRetry={() => void enhanceGuide(guide, activePrompt)}
+                    phase={enhancementPhase}
+                    sourceNoteCount={sourceNoteCount}
+                    totalLocations={countGuideLocations(guide)}
+                  />
+                }
+                guide={guide}
+                isEnhanced={enhancementPhase === "completed"}
+              />
+            ) : null}
+          </div>
+          {searchForm("search-bar conversation-composer")}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="travel-request-search">
-      <form className="search-bar" onSubmit={handleSubmit}>
-        <span className="search-label">旅行需求</span>
-        <input
-          aria-label="旅行需求"
-          autoComplete="off"
-          maxLength={200}
-          name="prompt"
-          onChange={(event) => setRequestText(event.target.value)}
-          placeholder="例如：成都玩三天，喜欢美食，公共交通"
-          required
-          type="search"
-          value={requestText}
-        />
-        <button disabled={isLoading} type="submit">
-          {isLoading ? "生成基础攻略…" : "搜索"}
-        </button>
-      </form>
+      {searchForm("search-bar")}
 
       <div className="quick-tags" aria-label="热门旅行需求示例">
         {searchExamples.map((label) => (
@@ -141,27 +189,6 @@ export function TravelRequestSearch() {
           </button>
         ))}
       </div>
-
-      {error ? (
-        <p className="search-message search-error" role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      {guide ? (
-        <GeneratedGuideView
-          enhancementStatus={
-            <GuideEnhancementStatus
-              onRetry={() => void enhanceGuide(guide, activePrompt)}
-              phase={enhancementPhase}
-              sourceNoteCount={sourceNoteCount}
-              totalLocations={countGuideLocations(guide)}
-            />
-          }
-          guide={guide}
-          isEnhanced={enhancementPhase === "completed"}
-        />
-      ) : null}
     </div>
   );
 }

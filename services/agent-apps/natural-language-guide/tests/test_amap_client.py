@@ -46,6 +46,37 @@ class AmapClientTest(unittest.TestCase):
         self.assertEqual(result, [{"date": "2026-10-01"}])
         self.assertEqual(get.call_args_list[1].kwargs["params"]["city"], "510100")
 
+    @patch("app.infrastructure.amap_client.httpx.get")
+    def test_weather_retries_without_province_prefix(self, get: Mock) -> None:
+        unresolved_response = Mock()
+        unresolved_response.json.return_value = {
+            "status": "1",
+            "districts": [],
+        }
+        district_response = Mock()
+        district_response.json.return_value = {
+            "status": "1",
+            "districts": [{"adcode": "532800"}],
+        }
+        weather_response = Mock()
+        weather_response.json.return_value = {
+            "status": "1",
+            "forecasts": [{"casts": [{"date": "2026-08-20"}]}],
+        }
+        get.side_effect = [
+            unresolved_response,
+            district_response,
+            weather_response,
+        ]
+
+        result = AmapClient("test-key").get_weather("云南西双版纳")
+
+        self.assertEqual(result, [{"date": "2026-08-20"}])
+        self.assertEqual(
+            [call.kwargs["params"]["keywords"] for call in get.call_args_list[:2]],
+            ["云南西双版纳", "西双版纳"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

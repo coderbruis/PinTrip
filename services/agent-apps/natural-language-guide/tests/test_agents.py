@@ -6,6 +6,7 @@ from app.agents.attraction import AttractionAgent
 from app.agents.intent import IntentAgent
 from app.agents.itinerary import ItineraryAgent
 from app.agents.weather import WeatherAgent
+from app.infrastructure.amap_client import AmapClientError
 
 
 class FakeAmapClient:
@@ -22,6 +23,16 @@ class FakeAmapClient:
 
     def get_weather(self, city: str) -> list[dict]:
         return [{"date": "2026-10-01", "dayweather": "晴"}]
+
+
+class UnavailableWeatherAmapClient(FakeAmapClient):
+    def get_weather(self, city: str) -> list[dict]:
+        raise AmapClientError(f"cannot resolve city adcode: {city}")
+
+
+class EmptyWeatherAmapClient(FakeAmapClient):
+    def get_weather(self, city: str) -> list[dict]:
+        return []
 
 
 class LangChainAgentsTest(unittest.TestCase):
@@ -45,7 +56,24 @@ class LangChainAgentsTest(unittest.TestCase):
         result = agent.research("成都", None)
 
         self.assertIn('"source": "amap"', result)
+        self.assertIn('"available": true', result)
         self.assertIn('"dayweather": "晴"', result)
+
+    def test_weather_agent_degrades_when_amap_is_unavailable(self) -> None:
+        agent = WeatherAgent(UnavailableWeatherAmapClient())
+
+        result = agent.research("未知景区", None)
+
+        self.assertIn('"available": false', result)
+        self.assertIn('"forecast": []', result)
+
+    def test_weather_agent_degrades_when_forecast_is_empty(self) -> None:
+        agent = WeatherAgent(EmptyWeatherAmapClient())
+
+        result = agent.research("未知景区", None)
+
+        self.assertIn('"available": false', result)
+        self.assertIn('"forecast": []', result)
 
     def test_itinerary_agent_uses_langchain_model(self) -> None:
         agent = ItineraryAgent(FakeListChatModel(responses=["{}"]))

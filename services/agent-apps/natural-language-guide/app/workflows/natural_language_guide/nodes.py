@@ -102,6 +102,7 @@ Schema：
                 raise ValueError(
                     f"expected {expected_days} days, received {len(itinerary.days)}"
                 )
+            self._attach_amap_images(itinerary, state["attraction_research"])
             return {
                 "itinerary": itinerary,
                 "itinerary_query": query,
@@ -175,3 +176,54 @@ Schema：
 请修正后重新输出完整JSON。上一次输出如下：
 {response[:4000]}
 """
+
+    @staticmethod
+    def _attach_amap_images(
+        itinerary: GeneratedItinerary, attraction_research: str
+    ) -> None:
+        """Fill omitted day images with verified AMap photo URLs."""
+        try:
+            research = json.loads(attraction_research)
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        places = research.get("places") if isinstance(research, dict) else None
+        if not isinstance(places, list):
+            return
+
+        photo_candidates: list[tuple[str, str]] = []
+        for place in places:
+            if not isinstance(place, dict):
+                continue
+            name = place.get("name")
+            photos = place.get("photos")
+            if not isinstance(name, str) or not isinstance(photos, list):
+                continue
+            photo_candidates.extend(
+                (name, photo)
+                for photo in photos
+                if isinstance(photo, str)
+                and photo.startswith(("http://", "https://"))
+            )
+
+        used_urls = {day.image_url for day in itinerary.days if day.image_url}
+        for day in itinerary.days:
+            if day.image_url:
+                continue
+            day_places = [item.place for item in day.items]
+            matched = next(
+                (
+                    photo
+                    for name, photo in photo_candidates
+                    if photo not in used_urls
+                    and any(name in place or place in name for place in day_places)
+                ),
+                None,
+            )
+            fallback = next(
+                (photo for _, photo in photo_candidates if photo not in used_urls),
+                None,
+            )
+            day.image_url = matched or fallback
+            if day.image_url:
+                used_urls.add(day.image_url)

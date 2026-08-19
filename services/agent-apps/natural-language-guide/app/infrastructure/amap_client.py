@@ -8,6 +8,31 @@ import httpx
 logger = logging.getLogger("uvicorn.error.pintrip.amap")
 
 
+PROVINCE_PREFIXES = tuple(
+    sorted(
+        {
+            "北京市", "天津市", "上海市", "重庆市",
+            "河北省", "山西省", "辽宁省", "吉林省", "黑龙江省",
+            "江苏省", "浙江省", "安徽省", "福建省", "江西省",
+            "山东省", "河南省", "湖北省", "湖南省", "广东省",
+            "海南省", "四川省", "贵州省", "云南省", "陕西省",
+            "甘肃省", "青海省", "台湾省",
+            "内蒙古自治区", "广西壮族自治区", "西藏自治区",
+            "宁夏回族自治区", "新疆维吾尔自治区",
+            "香港特别行政区", "澳门特别行政区",
+            "北京", "天津", "上海", "重庆", "河北", "山西",
+            "辽宁", "吉林", "黑龙江", "江苏", "浙江", "安徽",
+            "福建", "江西", "山东", "河南", "湖北", "湖南",
+            "广东", "海南", "四川", "贵州", "云南", "陕西",
+            "甘肃", "青海", "台湾", "内蒙古", "广西", "西藏",
+            "宁夏", "新疆", "香港", "澳门",
+        },
+        key=len,
+        reverse=True,
+    )
+)
+
+
 class AmapClientError(RuntimeError):
     """Raised when AMap cannot return a successful response."""
 
@@ -66,14 +91,35 @@ class AmapClient:
         return forecasts[0].get("casts", []) if forecasts else []
 
     def _get_city_adcode(self, city: str) -> str:
-        payload = self._get(
-            "/config/district",
-            {"keywords": city, "subdistrict": 0, "extensions": "base"},
-        )
-        districts = payload.get("districts", [])
-        if not districts or not districts[0].get("adcode"):
-            raise AmapClientError(f"cannot resolve city adcode: {city}")
-        return districts[0]["adcode"]
+        for candidate in self._district_query_candidates(city):
+            payload = self._get(
+                "/config/district",
+                {
+                    "keywords": candidate,
+                    "subdistrict": 0,
+                    "extensions": "base",
+                },
+            )
+            districts = payload.get("districts", [])
+            if districts and districts[0].get("adcode"):
+                if candidate != city:
+                    logger.info(
+                        "district.fallback original=%s candidate=%s",
+                        city,
+                        candidate,
+                    )
+                return districts[0]["adcode"]
+        raise AmapClientError(f"cannot resolve city adcode: {city}")
+
+    @staticmethod
+    def _district_query_candidates(city: str) -> list[str]:
+        normalized = city.strip()
+        candidates = [normalized]
+        for prefix in PROVINCE_PREFIXES:
+            if normalized.startswith(prefix) and len(normalized) > len(prefix):
+                candidates.append(normalized[len(prefix):].strip())
+                break
+        return candidates
 
     def _get(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
         started_at = perf_counter()
@@ -96,7 +142,11 @@ class AmapClient:
                 round((perf_counter() - started_at) * 1000),
                 type(error).__name__,
             )
-            raise
+            if isinstance(error, AmapClientError):
+                raise
+            raise AmapClientError(
+                f"AMap request failed: {type(error).__name__}"
+            ) from error
         logger.info(
             "request.completed path=%s duration_ms=%d",
             path,
