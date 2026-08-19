@@ -58,6 +58,80 @@ The web search box sends its text as `prompt`. Unambiguous single-destination
 prompts such as `成都两天美食游` use a local fast path. Complex and multi-city
 prompts fall back to the Intent Agent.
 
+## User-guide retrieval
+
+The workflow has a dedicated `retrieve_user_guides` node. It runs in parallel
+with attraction and weather research, then passes structured historical-guide
+evidence to the itinerary Agent. Retrieval is split into three boundaries:
+
+- `UserGuideRetriever`: builds the deterministic query, hydrates canonical
+  chunks, and preserves vector ranking.
+- `GuideVectorStore`: searches within a mandatory user scope.
+- `GuideRepository`: rechecks access while loading canonical chunk content.
+
+When `RAG_DATABASE_URL` is configured, the factory injects the PostgreSQL +
+pgvector adapter. Without it, the service uses `NullUserGuideRetriever` and keeps
+the existing generation behavior. The optional generation request `user_id`
+must come from an authenticated server-side gateway; never trust a
+browser-supplied owner identifier for access control.
+
+Start the development database from the repository root:
+
+```bash
+docker compose -f infra/rag/compose.yml up -d
+```
+
+Configure the service:
+
+```dotenv
+RAG_DATABASE_URL=postgresql://pintrip:pintrip@127.0.0.1:5433/pintrip
+EMBEDDING_MODEL_ID=text-embedding-3-small
+EMBEDDING_API_KEY=your-embedding-api-key
+EMBEDDING_DIMENSIONS=1536
+```
+
+The adapter lazily creates the `vector` extension, canonical
+`pintrip_user_guides` table, `pintrip_guide_chunks` table, user/destination
+index, and cosine HNSW index. Index a completed guide with:
+
+```http
+POST /agent/natural-language-guide/knowledge/guides
+Content-Type: application/json
+
+{
+  "user_id": "user-1",
+  "guide_id": "guide-1",
+  "destination": "成都",
+  "revision": 1,
+  "guide": {
+    "title": "成都两日游",
+    "summary": "低强度美食路线",
+    "days": [{
+      "day": 1,
+      "title": "老城漫步",
+      "items": [{
+        "time": "09:00",
+        "place": "宽窄巷子",
+        "activity": "散步并品尝小吃"
+      }]
+    }],
+    "budgetSummary": "人均 800 元",
+    "riskTips": ["提前确认开放时间"]
+  }
+}
+```
+
+Then pass the same authenticated `user_id` to the generate endpoint. Retrieval
+uses the resolved destination, embeds the semantic query, filters within that
+user before similarity ordering, and hydrates authorized canonical chunks.
+
+Run the real pgvector integration test against the development database:
+
+```bash
+TEST_RAG_DATABASE_URL=postgresql://pintrip:pintrip@127.0.0.1:5433/pintrip \
+  .venv/bin/python -m unittest tests.test_postgres_retrieval -v
+```
+
 ## Runtime progress
 
 The console logs request and LangGraph node progress with `trip_id` and

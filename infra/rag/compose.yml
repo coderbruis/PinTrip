@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: pintrip
+      POSTGRES_USER: pintrip
+      POSTGRES_PASSWORD: pintrip
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pintrip -d pintrip"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pintrip-rag-data:/var/lib/postgresql/data
+
+volumes:
+  pintrip-rag-data:

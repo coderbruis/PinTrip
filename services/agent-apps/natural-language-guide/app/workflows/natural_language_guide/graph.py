@@ -2,6 +2,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from ...models import NaturalLanguageGuideRequest, NaturalLanguageGuideResponse
+from ...retrieval import NullUserGuideRetriever, UserGuideRetrieverRunner
 from .dependencies import WorkflowAgents
 from .nodes import GuideWorkflowNodes, WorkflowError
 from .state import GuideWorkflowState
@@ -12,14 +13,17 @@ def build_guide_graph(nodes: GuideWorkflowNodes) -> CompiledStateGraph:
     graph.add_node("resolve_intent", nodes.resolve_intent)
     graph.add_node("research_attractions", nodes.research_attractions)
     graph.add_node("research_weather", nodes.research_weather)
+    graph.add_node("retrieve_user_guides", nodes.retrieve_user_guides)
     graph.add_node("generate_itinerary", nodes.generate_itinerary)
     graph.add_node("fail_generation", nodes.fail_generation)
 
     graph.add_edge(START, "resolve_intent")
     graph.add_edge("resolve_intent", "research_attractions")
     graph.add_edge("resolve_intent", "research_weather")
+    graph.add_edge("resolve_intent", "retrieve_user_guides")
     graph.add_edge(
-        ["research_attractions", "research_weather"], "generate_itinerary"
+        ["research_attractions", "research_weather", "retrieve_user_guides"],
+        "generate_itinerary",
     )
     graph.add_conditional_edges(
         "generate_itinerary",
@@ -35,11 +39,20 @@ def build_guide_graph(nodes: GuideWorkflowNodes) -> CompiledStateGraph:
 
 
 class NaturalLanguageGuideWorkflow:
-    def __init__(self, agents: WorkflowAgents, max_generation_attempts: int = 2):
+    def __init__(
+        self,
+        agents: WorkflowAgents,
+        max_generation_attempts: int = 2,
+        retriever: UserGuideRetrieverRunner | None = None,
+    ):
         if max_generation_attempts < 1:
             raise ValueError("max_generation_attempts must be at least 1")
         self._graph = build_guide_graph(
-            GuideWorkflowNodes(agents, max_generation_attempts)
+            GuideWorkflowNodes(
+                agents,
+                retriever or NullUserGuideRetriever(),
+                max_generation_attempts,
+            )
         )
 
     @property

@@ -17,6 +17,7 @@ def normalize_destination(value: str) -> str:
 
 class NaturalLanguageGuideRequest(BaseModel):
     trip_id: str = Field(min_length=1)
+    user_id: str | None = Field(default=None, min_length=1)
     prompt: str = Field(min_length=1)
     destination: str | None = Field(default=None, min_length=1)
     days: int | None = Field(default=None, ge=1, le=30)
@@ -38,6 +39,16 @@ class ResolvedTripIntent(BaseModel):
     accommodation: str = "舒适型酒店"
     preferences: list[str] = Field(default_factory=list)
     requirements: list[str] = Field(default_factory=list)
+
+
+class UserGuideEvidence(BaseModel):
+    chunk_id: str = Field(min_length=1)
+    guide_id: str = Field(min_length=1)
+    chunk_type: str = Field(min_length=1)
+    content: str = Field(min_length=1)
+    destination: str | None = None
+    place: str | None = None
+    score: float | None = None
 
 
 class GuideItem(BaseModel):
@@ -70,6 +81,25 @@ class GeneratedItinerary(BaseModel):
     days: list[GuideDay] = Field(min_length=1)
     budget_summary: str = Field(default="", alias="budgetSummary")
     risk_tips: list[str] = Field(default_factory=list, alias="riskTips")
+
+
+class IndexUserGuideRequest(BaseModel):
+    user_id: str = Field(min_length=1)
+    guide_id: str = Field(min_length=1)
+    destination: str = Field(min_length=1)
+    revision: int = Field(default=1, ge=1)
+    guide: GeneratedItinerary
+
+    @field_validator("destination", mode="before")
+    @classmethod
+    def clean_index_destination(cls, value: str) -> str:
+        return normalize_destination(value)
+
+
+class IndexUserGuideResponse(BaseModel):
+    guide_id: str
+    revision: int
+    chunk_count: int
 
 
 class NaturalLanguageGuideResponse(GeneratedItinerary):

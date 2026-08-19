@@ -5,7 +5,7 @@ import unittest
 
 from app.agents.weather import WeatherAgent
 from app.infrastructure.amap_client import AmapClientError
-from app.models import NaturalLanguageGuideRequest
+from app.models import NaturalLanguageGuideRequest, UserGuideEvidence
 from app.workflows import NaturalLanguageGuideWorkflow, WorkflowAgents, WorkflowError
 
 
@@ -63,6 +63,18 @@ class FakeItineraryAgent:
         if not self.responses:
             raise AssertionError("FakeItineraryAgent has no response configured")
         return self.responses.pop(0)
+
+
+class FakeUserGuideRetriever:
+    def __init__(self, evidence: list[UserGuideEvidence]):
+        self.evidence = evidence
+        self.calls: list[dict] = []
+
+    def retrieve(self, *, user_id, intent, prompt):
+        self.calls.append(
+            {"user_id": user_id, "intent": intent, "prompt": prompt}
+        )
+        return self.evidence
 
 
 def intent_response(days: int = 2) -> str:
@@ -284,12 +296,52 @@ class NaturalLanguageGuideWorkflowTest(unittest.TestCase):
         self.assertIn("resolve_intent", nodes)
         self.assertIn("research_attractions", nodes)
         self.assertIn("research_weather", nodes)
+        self.assertIn("retrieve_user_guides", nodes)
         self.assertIn("generate_itinerary", nodes)
         self.assertIn(("resolve_intent", "research_attractions"), edges)
         self.assertIn(("resolve_intent", "research_weather"), edges)
+        self.assertIn(("resolve_intent", "retrieve_user_guides"), edges)
         self.assertIn(("research_attractions", "generate_itinerary"), edges)
         self.assertIn(("research_weather", "generate_itinerary"), edges)
+        self.assertIn(("retrieve_user_guides", "generate_itinerary"), edges)
         self.assertIn(("generate_itinerary", "generate_itinerary"), edges)
+
+    def test_adds_user_guide_evidence_to_itinerary_query(self) -> None:
+        itinerary_agent = FakeItineraryAgent(itinerary_response())
+        retriever = FakeUserGuideRetriever(
+            [
+                UserGuideEvidence(
+                    chunk_id="chunk-1",
+                    guide_id="guide-1",
+                    chunk_type="place_experience",
+                    destination="成都",
+                    place="宽窄巷子",
+                    content="傍晚游览，人流相对少。",
+                    score=0.91,
+                )
+            ]
+        )
+        workflow = NaturalLanguageGuideWorkflow(
+            WorkflowAgents(
+                intent=FakeIntentAgent(intent_response()),
+                attraction=FakeAttractionAgent("景点研究结果"),
+                weather=FakeWeatherAgent("天气研究结果"),
+                itinerary=itinerary_agent,
+            ),
+            retriever=retriever,
+        )
+
+        workflow.plan(
+            NaturalLanguageGuideRequest(
+                trip_id="trip-rag",
+                user_id="user-1",
+                prompt="成都两日低强度旅行",
+            )
+        )
+
+        self.assertEqual("user-1", retriever.calls[0]["user_id"])
+        self.assertIn("宽窄巷子", itinerary_agent.queries[0])
+        self.assertIn("傍晚游览", itinerary_agent.queries[0])
 
     def test_retries_invalid_planner_output(self) -> None:
         itinerary_agent = FakeItineraryAgent("not json", itinerary_response())
