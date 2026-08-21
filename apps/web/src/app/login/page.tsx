@@ -2,11 +2,7 @@ import { AuthPage } from "../auth-page";
 
 export default function LoginPage() {
   return (
-    <AuthPage
-      eyebrow="Welcome Back"
-      title="登录拾途"
-      subtitle="继续整理你的旅行灵感、路线和预算。"
-    >
+    <AuthPage eyebrow="Welcome Back" title="登录拾途" subtitle="继续整理你的旅行灵感、路线和预算。">
       <form className="auth-form">
         <label>
           手机号或邮箱

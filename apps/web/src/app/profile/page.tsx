@@ -114,7 +114,10 @@ export default function ProfilePage() {
           <div className="profile-guide-grid">
             {myGuides.map((guide) => (
               <article className="profile-guide-card" key={guide.title}>
-                <div className="profile-guide-image" style={{ backgroundImage: `url(${guide.image})` }} />
+                <div
+                  className="profile-guide-image"
+                  style={{ backgroundImage: `url(${guide.image})` }}
+                />
                 <div className="profile-guide-body">
                   <p>{guide.meta}</p>
                   <h2>{guide.title}</h2>

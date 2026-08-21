@@ -25,8 +25,7 @@ export function TravelRequestSearch() {
   const [guide, setGuide] = useState<GeneratedGuide | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [enhancementPhase, setEnhancementPhase] =
-    useState<EnhancementPhase>("idle");
+  const [enhancementPhase, setEnhancementPhase] = useState<EnhancementPhase>("idle");
   const [sourceNoteCount, setSourceNoteCount] = useState(0);
   const [activePrompt, setActivePrompt] = useState("");
   const enhancementRequest = useRef<AbortController | null>(null);
@@ -49,9 +48,7 @@ export function TravelRequestSearch() {
         body: JSON.stringify({ prompt, guide: baseGuide }),
         signal: controller.signal
       });
-      const payload = (await response.json()) as
-        | GuideEnhancementResponse
-        | { error?: string };
+      const payload = (await response.json()) as GuideEnhancementResponse | { error?: string };
       if (!response.ok || !("guide" in payload)) {
         throw new Error("小红书内容增强暂不可用");
       }
@@ -60,15 +57,10 @@ export function TravelRequestSearch() {
         return;
       }
       setGuide(payload.guide);
-      setSourceNoteCount(
-        payload.sourceNoteCount ?? payload.guide.sourceNoteIds?.length ?? 0
-      );
+      setSourceNoteCount(payload.sourceNoteCount ?? payload.guide.sourceNoteIds?.length ?? 0);
       setEnhancementPhase("completed");
     } catch (enhancementError) {
-      if (
-        enhancementError instanceof DOMException &&
-        enhancementError.name === "AbortError"
-      ) {
+      if (enhancementError instanceof DOMException && enhancementError.name === "AbortError") {
         return;
       }
       setEnhancementPhase("failed");
@@ -105,11 +97,7 @@ export function TravelRequestSearch() {
       setGuide(baseGuide);
       void enhanceGuide(baseGuide, normalizedRequest);
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "攻略生成失败，请稍后重试"
-      );
+      setError(requestError instanceof Error ? requestError.message : "攻略生成失败，请稍后重试");
     } finally {
       setIsLoading(false);
     }

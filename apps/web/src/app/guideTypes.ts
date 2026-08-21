@@ -29,18 +29,12 @@ export type GuideEnhancementResponse = {
   enhancementStatus: "completed" | "unavailable";
 };
 
-export type EnhancementPhase =
-  | "idle"
-  | "enhancing"
-  | "completed"
-  | "failed";
+export type EnhancementPhase = "idle" | "enhancing" | "completed" | "failed";
 
 export function countGuideLocations(guide: GeneratedGuide): number {
   const locations = new Set(
     guide.days.flatMap((day) =>
-      day.items
-        .map((item) => item.place?.trim())
-        .filter((place): place is string => Boolean(place))
+      day.items.map((item) => item.place?.trim()).filter((place): place is string => Boolean(place))
     )
   );
   return locations.size;

@@ -199,8 +199,7 @@ button {
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(102, 127, 109, 0.2), rgba(210, 184, 142, 0.2)),
-    var(--surface);
+    linear-gradient(135deg, rgba(102, 127, 109, 0.2), rgba(210, 184, 142, 0.2)), var(--surface);
 }
 
 .auth-map {
@@ -213,8 +212,7 @@ button {
   border-radius: 50%;
   background:
     linear-gradient(90deg, rgba(102, 127, 109, 0.16) 1px, transparent 1px),
-    linear-gradient(rgba(102, 127, 109, 0.16) 1px, transparent 1px),
-    #eef1e9;
+    linear-gradient(rgba(102, 127, 109, 0.16) 1px, transparent 1px), #eef1e9;
   background-size: 48px 48px;
   transform: translate(-50%, -50%);
 }

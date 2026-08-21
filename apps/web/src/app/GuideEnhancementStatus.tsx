@@ -21,9 +21,7 @@ export function GuideEnhancementStatus({
     return (
       <aside className="guide-enhancement is-running" aria-live="polite">
         <span className="enhancement-spinner" aria-hidden="true" />
-        <span>
-          正在分析 {totalLocations || "行程中的"} 个地点的真实游客笔记…
-        </span>
+        <span>正在分析 {totalLocations || "行程中的"} 个地点的真实游客笔记…</span>
       </aside>
     );
   }

@@ -5,10 +5,7 @@ const DEFAULT_AGENT_URL = "http://127.0.0.1:8091";
 export const maxDuration = 120;
 
 function getAgentUrl() {
-  return (process.env.NATURAL_LANGUAGE_GUIDE_AGENT_URL || DEFAULT_AGENT_URL).replace(
-    /\/$/,
-    ""
-  );
+  return (process.env.NATURAL_LANGUAGE_GUIDE_AGENT_URL || DEFAULT_AGENT_URL).replace(/\/$/, "");
 }
 
 function getAgentError(payload: unknown) {
@@ -36,38 +33,27 @@ export async function POST(request: Request) {
   }
 
   const prompt =
-    body && typeof body === "object" && "prompt" in body
-      ? String(body.prompt).trim()
-      : "";
+    body && typeof body === "object" && "prompt" in body ? String(body.prompt).trim() : "";
   if (!prompt) {
     return NextResponse.json({ error: "请输入旅行需求" }, { status: 400 });
   }
   if (prompt.length > 200) {
-    return NextResponse.json(
-      { error: "旅行需求不能超过 200 个字符" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "旅行需求不能超过 200 个字符" }, { status: 400 });
   }
 
   try {
-    const agentResponse = await fetch(
-      `${getAgentUrl()}/agent/natural-language-guide/generate`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trip_id: `web-${crypto.randomUUID()}`,
-          prompt
-        }),
-        cache: "no-store"
-      }
-    );
+    const agentResponse = await fetch(`${getAgentUrl()}/agent/natural-language-guide/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        trip_id: `web-${crypto.randomUUID()}`,
+        prompt
+      }),
+      cache: "no-store"
+    });
     const payload: unknown = await agentResponse.json();
     if (!agentResponse.ok) {
-      return NextResponse.json(
-        { error: getAgentError(payload) },
-        { status: agentResponse.status }
-      );
+      return NextResponse.json({ error: getAgentError(payload) }, { status: agentResponse.status });
     }
     return NextResponse.json(payload);
   } catch {

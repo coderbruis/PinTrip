@@ -16,8 +16,7 @@ const unavailableTextMarkers = [
 function isDisplayableText(value: string | null | undefined): value is string {
   const normalized = value?.trim();
   return Boolean(
-    normalized &&
-      !unavailableTextMarkers.some((marker) => normalized.includes(marker))
+    normalized && !unavailableTextMarkers.some((marker) => normalized.includes(marker))
   );
 }
 
@@ -41,10 +40,7 @@ export function GeneratedGuideView({
     new Map<string, string>(
       guide.days
         .filter((day) => isDisplayableImage(day.imageUrl))
-        .map(
-          (day) =>
-            [day.imageUrl as string, day.title || `第 ${day.day} 天`] as const
-        )
+        .map((day) => [day.imageUrl as string, day.title || `第 ${day.day} 天`] as const)
     )
   ).slice(0, 3);
 
@@ -67,9 +63,7 @@ export function GeneratedGuideView({
         </div>
       ) : null}
 
-      <h3 className="generated-guide-section-title">
-        {guide.days.length} 日精华行程路线
-      </h3>
+      <h3 className="generated-guide-section-title">{guide.days.length} 日精华行程路线</h3>
 
       <div className="generated-guide-days">
         {guide.days.map((day) => {
@@ -94,20 +88,12 @@ export function GeneratedGuideView({
                       const tips = (item.tips || []).filter(isDisplayableText);
                       return (
                         <li key={`${day.day}-${index}`}>
-                          {isDisplayableText(item.time) ? (
-                            <time>{item.time}</time>
-                          ) : null}
+                          {isDisplayableText(item.time) ? <time>{item.time}</time> : null}
                           <div>
-                            {isDisplayableText(item.place) ? (
-                              <strong>{item.place}</strong>
-                            ) : null}
-                            {isDisplayableText(item.activity) ? (
-                              <p>{item.activity}</p>
-                            ) : null}
+                            {isDisplayableText(item.place) ? <strong>{item.place}</strong> : null}
+                            {isDisplayableText(item.activity) ? <p>{item.activity}</p> : null}
                             {isDisplayableText(item.transport) ? (
-                              <p className="generated-guide-transport">
-                                交通：{item.transport}
-                              </p>
+                              <p className="generated-guide-transport">交通：{item.transport}</p>
                             ) : null}
                             {tips.length ? (
                               <ul className="generated-guide-item-tips">
@@ -154,9 +140,7 @@ export function GeneratedGuideView({
         </section>
       ) : null}
 
-      <p className="generated-guide-followup">
-        还想调整节奏、交通或住宿偏好吗？可以继续告诉我。
-      </p>
+      <p className="generated-guide-followup">还想调整节奏、交通或住宿偏好吗？可以继续告诉我。</p>
     </section>
   );
 }
