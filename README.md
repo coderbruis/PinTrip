@@ -195,6 +195,40 @@ flowchart TB
 
 阶段一中，景点研究和天气研究由 LangGraph 异步并行执行；简单的单目的地请求走本地快速解析，复杂表达才调用意图模型。基础攻略通过 Pydantic Schema 和旅行天数校验后立即展示。阶段二从攻略中提取地点，有限并发调用 Spider_XHS 获取笔记正文和评论，再由 GuideMerger Agent 合并有效证据。任何抓取、合并或增强校验失败都会降级为基础攻略。
 
+## RAG 知识沉淀与复用流程
+
+RAG 知识库分为用户个人知识和平台公共知识两个来源。AI 刚生成的草稿不会直接写入知识库；只有用户主动保存、编辑后保存、标记完成或收藏的攻略，才作为确认过的个人经验异步入库。平台公共攻略则由运营人员导入并经过解析、审核、去重和标准化后发布，避免未经验证的生成内容反复回灌并污染后续结果。
+
+```mermaid
+flowchart TD
+    GENERATE["用户检索并生成攻略"] --> DRAFT["展示草稿"]
+    DRAFT --> ACTION{"用户操作"}
+
+    ACTION -->|仅浏览或放弃| SKIP["不进入 RAG"]
+    ACTION -->|保存攻略| SAVE["保存业务数据"]
+    ACTION -->|编辑后保存| SAVE
+    ACTION -->|标记完成或收藏| SAVE
+
+    SAVE --> INDEX_TASK["异步提交 RAG 入库任务"]
+    INDEX_TASK --> EMBEDDING["按业务语义切块并生成 Embedding"]
+    EMBEDDING --> USER_KB[("用户个人知识库")]
+
+    OPERATOR["运营导入攻略"] --> PARSE["解析和预览"]
+    PARSE --> REVIEW["人工审核、去重和标准化"]
+    REVIEW --> PUBLISH["发布"]
+    PUBLISH --> PUBLIC_KB[("平台公共知识库")]
+
+    NEW_QUERY["用户发起新需求"] --> RETRIEVE_USER["检索个人知识"]
+    NEW_QUERY --> RETRIEVE_PUBLIC["检索平台知识"]
+    USER_KB --> RETRIEVE_USER
+    PUBLIC_KB --> RETRIEVE_PUBLIC
+    RETRIEVE_USER --> MERGE["合并、去重和重排"]
+    RETRIEVE_PUBLIC --> MERGE
+    MERGE --> NEW_GUIDE["生成新攻略"]
+```
+
+用户攻略入库采用稳定的 `guide_id` 标识攻略，并通过递增的 `revision` 更新已有向量数据。在线生成时，系统分别召回当前用户的历史攻略和已发布的平台攻略，再进行权限过滤、相关度筛选、去重与重排，最终将可靠证据交给行程 Agent。个人攻略自动入库和平台公共知识库属于逐步接入的业务链路，不影响 RAG 不可用时继续生成基础攻略。
+
 ## 系统运行效果
 
 ### 自然语言生成旅行攻略
