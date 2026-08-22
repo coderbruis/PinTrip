@@ -5,10 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      "/rag-api": {
-        target: "http://127.0.0.1:8090",
+      "/admin-api": {
+        target: "http://127.0.0.1:8081",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/rag-api/, "/rag")
+        rewrite: (path) => path.replace(/^\/admin-api/, "")
       }
     }
   }

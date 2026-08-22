@@ -2,7 +2,8 @@ node_modules
 .next
 dist
 build
-target
+# Maven build outputs in every Java service
+**/target/
 .turbo
 .idea
 .vscode

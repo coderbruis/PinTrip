@@ -1,9 +1,13 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
-    name: pintrip-api
+    name: pintrip-admin-api
+
+pintrip:
+  rag:
+    base-url: ${RAG_SERVICE_URL:http://127.0.0.1:8090}
 
 springdoc:
   api-docs:

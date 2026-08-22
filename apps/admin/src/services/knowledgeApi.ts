@@ -30,7 +30,7 @@ export type ChunkPreview = {
   chunks: string[];
 };
 
-const apiBaseUrl = import.meta.env.VITE_RAG_API_URL ?? "/rag-api";
+const apiBaseUrl = import.meta.env.VITE_ADMIN_API_URL ?? "/admin-api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
@@ -45,14 +45,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function listKnowledge(): Promise<KnowledgeItem[]> {
-  const response = await request<{ items: KnowledgeItem[] }>("/knowledge");
+  const response = await request<{ items: KnowledgeItem[] }>("/api/admin/knowledge");
   return response.items;
 }
 
 export function importKnowledge(payload: ImportKnowledgePayload): Promise<KnowledgeItem> {
-  return request<KnowledgeItem>("/knowledge/import", { method: "POST", body: JSON.stringify(payload) });
+  return request<KnowledgeItem>("/api/admin/knowledge", { method: "POST", body: JSON.stringify(payload) });
 }
 
 export function previewKnowledge(payload: ImportKnowledgePayload): Promise<ChunkPreview> {
-  return request<ChunkPreview>("/knowledge/preview", { method: "POST", body: JSON.stringify(payload) });
+  return request<ChunkPreview>("/api/admin/knowledge/preview", { method: "POST", body: JSON.stringify(payload) });
 }

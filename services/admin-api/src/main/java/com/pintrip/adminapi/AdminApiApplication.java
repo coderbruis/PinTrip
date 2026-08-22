@@ -1,11 +1,11 @@
-package com.pintrip.api;
+package com.pintrip.adminapi;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class PinTripApiApplication {
+public class AdminApiApplication {
     public static void main(String[] args) {
-        SpringApplication.run(PinTripApiApplication.class, args);
+        SpringApplication.run(AdminApiApplication.class, args);
     }
 }

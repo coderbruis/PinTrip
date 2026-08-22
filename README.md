@@ -2,7 +2,7 @@
 
 PinTrip 是一个 AI 旅行攻略生成平台。用户可以用自然语言描述目的地、旅行天数、交通方式和兴趣偏好，系统通过多 Agent 协作完成需求解析、景点与天气研究，并生成包含每日行程、预算和实景图片的结构化攻略。
 
-项目同时包含 Java API、管理后台和多个职责独立的攻略 Agent，为后续扩展数据来源和攻略生成能力预留了清晰边界。
+项目同时包含面向 Web/App 的用户 Java API、运营后台 Java API、管理后台和多个职责独立的攻略 Agent，为后续扩展数据来源和攻略生成能力预留了清晰边界。
 
 ## 核心功能
 
@@ -49,7 +49,8 @@ flowchart TB
 
     subgraph Gateway["接口层"]
         WEB_API["Next.js 服务端代理<br/>generate / enhance"]
-        JAVA_API["PinTrip Java API<br/>Spring Boot"]
+        USER_API["用户 API<br/>Spring Boot :8080"]
+        ADMIN_API["运营后台 API<br/>Spring Boot :8081"]
     end
 
     subgraph AgentServices["Agent 服务层"]
@@ -94,8 +95,9 @@ flowchart TB
     WEATHER --> AMAP
 
     OPERATOR --> ADMIN
-    ADMIN -.->|待接入业务接口| JAVA_API
-    JAVA_API -.->|待接入任务编排| IMPORT
+    WEB -.->|用户业务接口| USER_API
+    ADMIN -->|运营业务接口| ADMIN_API
+    ADMIN_API -->|知识导入与索引| IMPORT
 ```
 
 实线表示当前已经接通的主要调用链路，虚线表示已建立模块但尚未完成的业务集成。
@@ -261,7 +263,7 @@ flowchart TD
 | --- | --- |
 | Web 用户端 | Next.js 15、React 19、TypeScript |
 | 管理后台 | React 19、Vite、Ant Design |
-| Java API | Java 21、Spring Boot 3.4、Springdoc OpenAPI |
+| 用户/运营 Java API | Java 17+、Spring Boot 3.4、Springdoc OpenAPI |
 | Agent 服务 | Python 3.11+、FastAPI、Pydantic |
 | Agent 实现 | LangChain、LangGraph、OpenAI 兼容模型 |
 | 地图能力 | 高德地图 Web Service API |
@@ -275,7 +277,8 @@ PinTrip/
 │   ├── web/                         # 用户端和 Agent 服务端代理
 │   └── admin/                       # 运营管理后台
 ├── services/
-│   ├── api/                         # Spring Boot API
+│   ├── user-api/                    # Web/App 用户 Spring Boot API
+│   ├── admin-api/                   # 运营后台 Spring Boot API
 │   ├── crawler-api/                 # 小红书笔记与评论抓取接口
 │   └── agent-apps/
 │       ├── import-guide/            # 导入笔记生成攻略（脚手架）
@@ -321,7 +324,7 @@ services/agent-apps/natural-language-guide/app/
 - Node.js 20+
 - pnpm 9.15+
 - Python 3.11+
-- Java 21 和 Maven 3.9+（仅启动 Java API 时需要）
+- Java 17+ 和 Maven 3.9+（启动用户或运营 Java API 时需要）
 
 首次拉取项目时初始化固定版本的 Spider_XHS 子模块：
 
@@ -469,8 +472,11 @@ XHS_GUIDE_AGENT_URL=http://127.0.0.1:8093
 ### 5. 启动其他模块（可选）
 
 ```bash
-# Java API：http://localhost:8080
-pnpm dev:api
+# Web/App 用户 API：http://localhost:8080
+pnpm dev:user-api
+
+# 运营后台 API：http://localhost:8081
+pnpm dev:admin-api
 
 # 管理后台：http://localhost:3001
 pnpm dev:admin
@@ -496,7 +502,11 @@ pnpm dev:agent:import
 | 导入攻略 Agent | `GET /rag/knowledge` | 获取运营知识库及 RAG 索引状态 |
 | 导入攻略 Agent | `GET /rag/knowledge/{knowledgeId}` | 获取知识正文与切块详情 |
 | 导入攻略 Agent | `POST /rag/knowledge/import` | 校验、切块并提交攻略至 RAG 索引 |
-| Java API | `GET /api/health` | Java 服务健康检查 |
+| 用户 API | `GET /api/health` | Web/App 用户服务健康检查 |
+| 运营后台 API | `GET /api/admin/health` | 运营服务健康检查 |
+| 运营后台 API | `GET /api/admin/knowledge` | 查询知识库，内部调用 RAG 服务 |
+| 运营后台 API | `POST /api/admin/knowledge/preview` | 预览知识切块，内部调用 RAG 服务 |
+| 运营后台 API | `POST /api/admin/knowledge` | 导入知识，内部调用 RAG 服务 |
 
 自然语言 Agent 请求示例：
 
@@ -525,7 +535,8 @@ services/agent-apps/natural-language-guide/.venv/bin/python \
   -v
 
 # Java API 测试
-mvn -q -f services/api/pom.xml test
+mvn -q -f services/user-api/pom.xml test
+mvn -q -f services/admin-api/pom.xml test
 ```
 
 ## 当前完成情况

@@ -11,7 +11,8 @@
     "typecheck": "turbo typecheck",
     "format": "prettier --write \"apps/{admin,web}/**/*.{ts,tsx,js,css,json,html,mjs}\"",
     "format:check": "prettier --check \"apps/{admin,web}/**/*.{ts,tsx,js,css,json,html,mjs}\"",
-    "dev:api": "cd services/api && mvn spring-boot:run",
+    "dev:user-api": "cd services/user-api && mvn spring-boot:run",
+    "dev:admin-api": "cd services/admin-api && mvn spring-boot:run",
     "dev:agent:import": "cd services/agent-apps/import-guide && python -m uvicorn app.main:app --reload --port 8090",
     "dev:agent:natural-language": "cd services/agent-apps/natural-language-guide && python -m uvicorn app.main:app --reload --port 8091"
   },
