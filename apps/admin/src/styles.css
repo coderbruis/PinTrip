@@ -496,6 +496,105 @@ kbd {
 .table-toolbar .ant-select {
   min-width: 130px;
 }
+.toolbar-refresh {
+  margin-left: auto;
+}
+.form-intro {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+.form-grid.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+.advanced-settings {
+  margin-top: -4px;
+  border-top: 1px solid var(--border);
+}
+.advanced-settings .ant-collapse-header {
+  padding-inline: 0 !important;
+  color: var(--muted) !important;
+  font-size: 12px;
+}
+.advanced-settings .ant-collapse-content-box {
+  padding: 8px 0 0 !important;
+}
+.preview-panel .ant-alert {
+  margin-bottom: 22px;
+}
+.preview-panel > h5 {
+  margin-bottom: 12px;
+}
+.detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.detail-heading .ant-typography {
+  margin: 0 !important;
+}
+.detail-meta {
+  margin: 22px 0;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+.detail-meta span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+.detail-meta b {
+  color: var(--muted);
+  font-size: 10px;
+}
+.knowledge-detail > h5 {
+  margin-top: 26px;
+}
+.content-preview,
+.chunk-card {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  font-size: 12px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+.chunk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chunk-card b {
+  color: var(--primary);
+  font-size: 10px;
+}
+.chunk-card p {
+  margin: 8px 0 0;
+}
+.index-error {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  font-size: 12px;
+}
 .table-title {
   display: flex;
   flex-direction: column;
@@ -760,9 +859,19 @@ kbd {
   .table-toolbar {
     flex-wrap: wrap;
   }
-  .table-toolbar .ant-input-search {
+  .table-toolbar .ant-input-search,
+  .table-toolbar .ant-select {
     max-width: none;
     width: 100%;
+  }
+  .toolbar-refresh {
+    width: 100%;
+    margin-left: 0;
+  }
+  .form-grid,
+  .form-grid.three,
+  .detail-meta {
+    grid-template-columns: 1fr;
   }
   .health-row {
     grid-template-columns: 125px 1fr 32px;

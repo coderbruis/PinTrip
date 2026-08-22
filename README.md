@@ -493,6 +493,9 @@ pnpm dev:agent:import
 | 小红书增强 Agent | `POST /agent/xhs-guide/enhance` | 用真实笔记证据增强基础攻略 |
 | 导入攻略 Agent | `GET /health` | 导入 Agent 健康检查 |
 | 导入攻略 Agent | `POST /agent/import-guide/generate` | 导入笔记攻略接口（当前为脚手架） |
+| 导入攻略 Agent | `GET /rag/knowledge` | 获取运营知识库及 RAG 索引状态 |
+| 导入攻略 Agent | `GET /rag/knowledge/{knowledgeId}` | 获取知识正文与切块详情 |
+| 导入攻略 Agent | `POST /rag/knowledge/import` | 校验、切块并提交攻略至 RAG 索引 |
 | Java API | `GET /api/health` | Java 服务健康检查 |
 
 自然语言 Agent 请求示例：
