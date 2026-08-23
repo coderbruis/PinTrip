@@ -4,13 +4,34 @@ server:
 spring:
   application:
     name: pintrip-admin-api
-
+  datasource:
+    url: ${ADMIN_MYSQL_URL:jdbc:mysql://127.0.0.1:3306/pintrip_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${ADMIN_MYSQL_USERNAME:pintrip}
+    password: ${ADMIN_MYSQL_PASSWORD:pintrip}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
 pintrip:
   rag:
     base-url: ${RAG_SERVICE_URL:http://127.0.0.1:8090}
+  security:
+    jwt-secret: ${ADMIN_JWT_SECRET:pintrip-local-jwt-secret-at-least-32-bytes}
+    token-ttl: ${ADMIN_TOKEN_TTL:PT8H}
+    login:
+      max-failures: ${ADMIN_LOGIN_MAX_FAILURES:5}
+      lock-duration: ${ADMIN_LOGIN_LOCK_DURATION:PT15M}
 
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+logging:
+  level:
+    com.pintrip.adminapi: ${PINTRIP_APP_LOG_LEVEL:INFO}
+    org.hibernate.SQL: ${PINTRIP_SQL_LOG_LEVEL:DEBUG}
+    org.hibernate.orm.jdbc.bind: ${PINTRIP_SQL_BIND_LOG_LEVEL:OFF}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-}] %logger{40} - %msg%n"

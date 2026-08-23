@@ -1,6 +1,7 @@
-package com.pintrip.adminapi.knowledge;
+package com.pintrip.adminapi.controller.knowledge;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.pintrip.adminapi.knowledge.RagClient;
 import jakarta.annotation.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

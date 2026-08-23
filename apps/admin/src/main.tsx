@@ -10,6 +10,7 @@ import { ImportLogsPage } from "./pages/ImportLogsPage";
 import { AgentTasksPage } from "./pages/AgentTasksPage";
 import { PromptTemplatesPage } from "./pages/PromptTemplatesPage";
 import type { AdminPageKey } from "./types";
+import { clearSession, getAccessToken, getAdminProfile, type AdminProfile } from "./services/authApi";
 
 const pageTitles: Record<AdminPageKey, string> = {
   dashboard: "运营看板",
@@ -25,8 +26,8 @@ function getInitialPage(): AdminPageKey {
 }
 
 function AdminApp() {
-  const [signedIn, setSignedIn] = useState(
-    () => window.sessionStorage.getItem("pintrip-admin-session") === "demo"
+  const [profile, setProfile] = useState<AdminProfile | null>(() =>
+    getAccessToken() ? getAdminProfile() : null
   );
   const [page, setPage] = useState<AdminPageKey>(getInitialPage);
   const [darkMode, setDarkMode] = useState(
@@ -51,17 +52,16 @@ function AdminApp() {
     setPage(nextPage);
   }
 
-  function signIn() {
-    window.sessionStorage.setItem("pintrip-admin-session", "demo");
-    setSignedIn(true);
+  function signIn(admin: AdminProfile) {
+    setProfile(admin);
   }
 
   function signOut() {
-    window.sessionStorage.removeItem("pintrip-admin-session");
-    setSignedIn(false);
+    clearSession();
+    setProfile(null);
   }
 
-  if (!signedIn)
+  if (!profile)
     return <LoginPage onSignIn={signIn} darkMode={darkMode} onThemeChange={setDarkMode} />;
 
   return (
@@ -72,6 +72,7 @@ function AdminApp() {
       onNavigate={navigate}
       onThemeChange={setDarkMode}
       onSignOut={signOut}
+      profile={profile}
     >
       {content}
     </AdminShell>

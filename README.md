@@ -485,6 +485,25 @@ pnpm dev:admin
 pnpm dev:agent:import
 ```
 
+### 运营后台账号登录
+
+运营后台 API 使用 MySQL 保存账号，并由 Spring Security 校验 BCrypt 密码、签发 Bearer JWT。先启动数据库：
+
+```bash
+docker compose -f infra/admin/compose.yml up -d
+```
+
+项目不自动修改数据库结构。首次使用时，先在 `pintrip_admin` 数据库手工执行 `infra/admin/schema.sql`；再复制 `infra/admin/create-first-admin.sql.example`，将其中的 `PASSWORD_BCRYPT_HASH` 替换为 BCrypt（cost 12）摘要后执行一次，以创建首个运营账号。
+
+启动 API 时只需提供数据库连接和 JWT 签名密钥：
+
+```bash
+ADMIN_JWT_SECRET='请替换为至少32字节的随机密钥' \
+pnpm dev:admin-api
+```
+
+运营账号、BCrypt 密码摘要、账号状态和角色全部从 MySQL 读取。连续输错密码 5 次后默认锁定 15 分钟；可用 `ADMIN_LOGIN_MAX_FAILURES` 和 `ADMIN_LOGIN_LOCK_DURATION` 调整。运营后台开发服务器通过 `/admin-api` 代理访问 Java API，登录令牌默认有效期为 8 小时。
+
 ## 主要接口
 
 | 服务 | 方法与路径 | 说明 |

@@ -1,4 +1,4 @@
-package com.pintrip.adminapi;
+package com.pintrip.adminapi.controller;
 
 import java.time.Instant;
 import java.util.Map;

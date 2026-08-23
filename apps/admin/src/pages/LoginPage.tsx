@@ -1,17 +1,24 @@
 import { Button, Checkbox, Form, Input, message } from "antd";
 import { AppIcon } from "../components/AppIcon";
+import { login, saveSession, type AdminProfile } from "../services/authApi";
 
 interface Props {
   darkMode: boolean;
-  onSignIn: () => void;
+  onSignIn: (profile: AdminProfile) => void;
   onThemeChange: (dark: boolean) => void;
 }
 
 export function LoginPage({ darkMode, onSignIn, onThemeChange }: Props) {
   const [messageApi, contextHolder] = message.useMessage();
-  const submit = () => {
-    messageApi.success("演示账号登录成功");
-    window.setTimeout(onSignIn, 250);
+  const submit = async (values: { username: string; password: string; remember?: boolean }) => {
+    try {
+      const result = await login(values.username, values.password);
+      saveSession(result, Boolean(values.remember));
+      messageApi.success("登录成功");
+      onSignIn(result.user);
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "登录失败");
+    }
   };
   return (
     <div className="login-page">
@@ -43,20 +50,18 @@ export function LoginPage({ darkMode, onSignIn, onThemeChange }: Props) {
         <div className="login-form-wrap">
           <p className="eyebrow">WELCOME BACK</p>
           <h2>登录运营后台</h2>
-          <p className="muted">当前为前端演示登录，提交任意符合格式的账号即可进入。</p>
+          <p className="muted">使用运营账号登录，访问知识库与 Agent 管理功能。</p>
           <Form layout="vertical" size="large" onFinish={submit} requiredMark={false}>
             <Form.Item
-              label="邮箱"
-              name="email"
-              initialValue="operator@pintrip.cn"
-              rules={[{ required: true, type: "email", message: "请输入有效邮箱" }]}
+              label="账号"
+              name="username"
+              rules={[{ required: true, message: "请输入运营账号" }]}
             >
-              <Input placeholder="name@pintrip.cn" />
+              <Input placeholder="请输入运营账号" autoComplete="username" />
             </Form.Item>
             <Form.Item
               label="密码"
               name="password"
-              initialValue="pintrip-demo"
               rules={[
                 {
                   required: true,
@@ -65,10 +70,12 @@ export function LoginPage({ darkMode, onSignIn, onThemeChange }: Props) {
                 }
               ]}
             >
-              <Input.Password placeholder="请输入密码" />
+              <Input.Password placeholder="请输入密码" autoComplete="current-password" />
             </Form.Item>
             <div className="login-options">
-              <Checkbox defaultChecked>保持登录</Checkbox>
+              <Form.Item name="remember" valuePropName="checked" noStyle>
+                <Checkbox>保持登录</Checkbox>
+              </Form.Item>
               <button type="button" onClick={() => messageApi.info("请联系系统管理员重置密码")}>
                 忘记密码？
               </button>

@@ -1,3 +1,5 @@
+import { clearSession, getAccessToken } from "./authApi";
+
 export type KnowledgeStatus = "published" | "indexing" | "failed";
 
 export type KnowledgeItem = {
@@ -33,10 +35,20 @@ export type ChunkPreview = {
 const apiBaseUrl = import.meta.env.VITE_ADMIN_API_URL ?? "/admin-api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getAccessToken();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers }
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers
+    }
   });
+  if (response.status === 401) {
+    clearSession();
+    window.location.reload();
+    throw new Error("登录已过期，请重新登录");
+  }
   if (!response.ok) {
     const body = (await response.json().catch(() => undefined)) as { detail?: string } | undefined;
     throw new Error(body?.detail ?? `RAG 服务请求失败（${response.status}）`);

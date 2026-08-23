@@ -1,0 +1,23 @@
+-- 先用 BCrypt（cost 12）生成密码摘要，并替换下面的 PASSWORD_BCRYPT_HASH。
+-- 此文件不会被 Docker Compose 自动执行，避免默认账号和密码进入数据库。
+
+START TRANSACTION;
+
+INSERT INTO pintrip_admin_user (
+    username, email, password_hash, display_name, status, password_changed_at
+) VALUES (
+    'operator',
+    'operator@pintrip.cn',
+    'PASSWORD_BCRYPT_HASH',
+    '运营管理员',
+    1,
+    NOW(6)
+);
+
+INSERT INTO pintrip_admin_user_role (user_id, role_id)
+SELECT u.id, r.id
+FROM pintrip_admin_user u
+JOIN pintrip_admin_role r ON r.role_code = 'SUPER_ADMIN'
+WHERE u.username = 'operator';
+
+COMMIT;

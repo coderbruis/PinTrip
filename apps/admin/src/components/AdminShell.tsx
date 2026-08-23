@@ -2,6 +2,7 @@ import { Button, Drawer, Dropdown, Input, type MenuProps } from "antd";
 import { useState, type ReactNode } from "react";
 import type { AdminPageKey } from "../types";
 import { AppIcon } from "./AppIcon";
+import type { AdminProfile } from "../services/authApi";
 
 const navigation: Array<{ key: AdminPageKey; label: string; hint: string }> = [
   { key: "dashboard", label: "运营看板", hint: "全局概览" },
@@ -19,6 +20,7 @@ interface Props {
   onNavigate: (page: AdminPageKey) => void;
   onThemeChange: (dark: boolean) => void;
   onSignOut: () => void;
+  profile: AdminProfile;
 }
 function Brand() {
   return (
@@ -71,8 +73,8 @@ export function AdminShell(props: Props) {
         <div className="sidebar-footer">
           <span className="avatar">OP</span>
           <span>
-            <strong>运营管理员</strong>
-            <small>operator@pintrip.cn</small>
+            <strong>{props.profile.displayName}</strong>
+            <small>{props.profile.email ?? props.profile.username}</small>
           </span>
         </div>
       </aside>
@@ -107,7 +109,7 @@ export function AdminShell(props: Props) {
             <Dropdown menu={{ items: userMenu }} placement="bottomRight" trigger={["click"]}>
               <button className="profile-trigger">
                 <span className="avatar small">OP</span>
-                <span>运营管理员</span>
+                <span>{props.profile.displayName}</span>
               </button>
             </Dropdown>
           </div>
