@@ -14,7 +14,8 @@
     "dev:user-api": "cd services/user-api && mvn spring-boot:run",
     "dev:admin-api": "cd services/admin-api && mvn spring-boot:run",
     "dev:agent:import": "cd services/agent-apps/import-guide && python -m uvicorn app.main:app --reload --port 8090",
-    "dev:agent:natural-language": "cd services/agent-apps/natural-language-guide && python -m uvicorn app.main:app --reload --port 8091"
+    "dev:agent:natural-language": "cd services/agent-apps/natural-language-guide && python -m uvicorn app.main:app --reload --port 8091",
+    "dev:xhs": "cd services/agent-apps/xhs-guide-enhancer && python -m uvicorn app.main:app --reload --port 8092"
   },
   "devDependencies": {
     "prettier": "^3.6.2",

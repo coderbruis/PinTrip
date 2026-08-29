@@ -1,3 +1,3 @@
-[submodule "services/crawler-api/vendor/Spider_XHS"]
-	path = services/crawler-api/vendor/Spider_XHS
+[submodule "services/agent-apps/xhs-guide-enhancer/vendor/Spider_XHS"]
+	path = services/agent-apps/xhs-guide-enhancer/vendor/Spider_XHS
 	url = https://github.com/cv-cat/Spider_XHS.git

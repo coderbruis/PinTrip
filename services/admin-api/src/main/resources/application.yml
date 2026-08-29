@@ -5,9 +5,9 @@ spring:
   application:
     name: pintrip-admin-api
   datasource:
-    url: ${ADMIN_MYSQL_URL:jdbc:mysql://127.0.0.1:3306/pintrip_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
-    username: ${ADMIN_MYSQL_USERNAME:pintrip}
-    password: ${ADMIN_MYSQL_PASSWORD:pintrip}
+    url: ${ADMIN_DATABASE_URL:jdbc:postgresql://127.0.0.1:5433/pintrip}
+    username: ${ADMIN_DATABASE_USERNAME:pintrip}
+    password: ${ADMIN_DATABASE_PASSWORD:pintrip}
   jpa:
     open-in-view: false
     hibernate:

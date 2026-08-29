@@ -1,3 +1,5 @@
+name: pintrip
+
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -13,7 +15,7 @@ services:
       timeout: 5s
       retries: 10
     volumes:
-      - pintrip-rag-data:/var/lib/postgresql/data
+      - pintrip-postgres-data:/var/lib/postgresql/data
 
 volumes:
-  pintrip-rag-data:
+  pintrip-postgres-data:

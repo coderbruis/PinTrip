@@ -1,20 +1,21 @@
+name: pintrip
+
 services:
-  mysql:
-    image: mysql:8.4
+  postgres:
+    image: pgvector/pgvector:pg17
     environment:
-      MYSQL_DATABASE: pintrip_admin
-      MYSQL_USER: pintrip
-      MYSQL_PASSWORD: pintrip
-      MYSQL_ROOT_PASSWORD: pintrip-root
+      POSTGRES_DB: pintrip
+      POSTGRES_USER: pintrip
+      POSTGRES_PASSWORD: pintrip
     ports:
-      - "3306:3306"
-    volumes:
-      - pintrip-admin-mysql:/var/lib/mysql
+      - "5433:5432"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-upintrip", "-ppintrip"]
+      test: ["CMD-SHELL", "pg_isready -U pintrip -d pintrip"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 10
+    volumes:
+      - pintrip-postgres-data:/var/lib/postgresql/data
 
 volumes:
-  pintrip-admin-mysql:
+  pintrip-postgres-data:

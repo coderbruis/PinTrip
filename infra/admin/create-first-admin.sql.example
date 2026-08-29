@@ -11,7 +11,7 @@ INSERT INTO pintrip_admin_user (
     'PASSWORD_BCRYPT_HASH',
     '运营管理员',
     1,
-    NOW(6)
+    CURRENT_TIMESTAMP
 );
 
 INSERT INTO pintrip_admin_user_role (user_id, role_id)

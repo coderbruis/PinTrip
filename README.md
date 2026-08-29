@@ -27,7 +27,7 @@ PinTrip 是一个 AI 旅行攻略生成平台。用户可以用自然语言描�
 - GuideMerger Agent 从真实游客内容中提炼游玩建议、时间安排、本地体验和避坑信息，再合并回基础攻略。
 - 增强结果记录 `sourceNoteIds`，前端展示参考笔记数量和增强状态。
 - 抓取或增强服务不可用时自动保留基础攻略，不影响主流程；小红书图片不会写入攻略，页面图片继续使用高德返回的可信地址。
-- 支持 Cookie、扫码和手机号三种登录方式；扫码或手机号会话在 crawler-api 进程内复用。
+- 支持 Cookie、扫码和手机号三种登录方式；扫码或手机号会话在 XHS Service 进程内复用。
 
 ### 结构化攻略展示
 
@@ -55,7 +55,7 @@ flowchart TB
 
     subgraph AgentServices["Agent 服务层"]
         NATURAL["自然语言攻略服务<br/>FastAPI :8091"]
-        XHS_AGENT["小红书攻略增强<br/>FastAPI :8093"]
+        XHS_AGENT["XHS Service<br/>抓取 + 增强 :8092"]
         IMPORT["导入攻略服务<br/>FastAPI :8090（脚手架）"]
 
         subgraph Workflow["LangGraph 工作流"]
@@ -70,7 +70,6 @@ flowchart TB
     subgraph External["外部能力"]
         LLM["OpenAI 兼容大模型"]
         AMAP["高德地图 Web Service<br/>地点 / 天气 / 图片"]
-        CRAWLER["小红书抓取 API<br/>FastAPI :8092"]
         XHS["小红书内容接口"]
     end
 
@@ -89,8 +88,7 @@ flowchart TB
     INTENT --> LLM
     ITINERARY --> LLM
     XHS_AGENT --> LLM
-    XHS_AGENT --> CRAWLER
-    CRAWLER --> XHS
+    XHS_AGENT --> XHS
     ATTRACTION --> AMAP
     WEATHER --> AMAP
 
@@ -145,11 +143,10 @@ flowchart TB
     ENHANCE_API["Next.js API<br/>POST /api/guides/enhance"]
 
     subgraph PHASE_TWO["阶段二：小红书异步增强"]
-        ENHANCER["XHS 攻略增强服务<br/>FastAPI :8093"]
+        ENHANCER["XHS Service<br/>FastAPI :8092"]
         LOCATIONS["提取并去重攻略地点<br/>默认最多 8 个"]
         KEYWORDS["为每个地点生成关键词<br/>攻略标题 + 地点 + 游玩攻略 + 避坑"]
         CONCURRENT["有限并发抓取<br/>默认并发 3，每地点一次请求"]
-        CRAWLER["crawler-api<br/>FastAPI :8092"]
         SESSION{"Spider_XHS<br/>已有登录态？"}
         LOGIN["Cookie / 扫码 / 手机号登录<br/>首次初始化后进程内复用"]
         SEARCH["关键词搜索<br/>最新排序，每地点默认 5 篇"]
@@ -163,8 +160,7 @@ flowchart TB
         FINAL["增强后的最终攻略<br/>包含 sourceNoteIds"]
         DEGRADED["降级：保留基础攻略<br/>enhancementStatus = unavailable"]
 
-        ENHANCER --> LOCATIONS --> KEYWORDS --> CONCURRENT --> CRAWLER
-        CRAWLER --> SESSION
+        ENHANCER --> LOCATIONS --> KEYWORDS --> CONCURRENT --> SESSION
         SESSION -->|是| SEARCH
         SESSION -->|否| LOGIN --> SEARCH
         SEARCH --> DETAILS --> COMMENTS --> NORMALIZE --> EVIDENCE
@@ -279,11 +275,10 @@ PinTrip/
 ├── services/
 │   ├── user-api/                    # Web/App 用户 Spring Boot API
 │   ├── admin-api/                   # 运营后台 Spring Boot API
-│   ├── crawler-api/                 # 小红书笔记与评论抓取接口
 │   └── agent-apps/
 │       ├── import-guide/            # 导入笔记生成攻略（脚手架）
 │       ├── natural-language-guide/  # 自然语言生成基础攻略（LangGraph）
-│       └── xhs-guide-enhancer/      # 小红书内容筛选与攻略增强
+│       └── xhs-guide-enhancer/      # XHS Service：抓取、筛选与攻略增强（含 Spider_XHS）
 ├── packages/
 │   └── tsconfig/                    # 共享 TypeScript 配置
 ├── assets/
@@ -332,7 +327,7 @@ services/agent-apps/natural-language-guide/app/
 git submodule update --init --recursive
 ```
 
-该子模块当前仅用于本地学习和技术验证，具体安装与配置参见 `services/crawler-api/README.md`。
+该子模块由 XHS Service 通过内部 provider 直接调用，具体安装与配置参见 `services/agent-apps/xhs-guide-enhancer/README.md`。
 
 ### 1. 安装前端依赖
 
@@ -374,12 +369,12 @@ LLM_BASE_URL=https://你的模型服务地址/v1
 curl http://127.0.0.1:8091/health
 ```
 
-### 3. 配置并启动小红书抓取与攻略增强（可选）
+### 3. 配置并启动 XHS Service（可选）
 
-安装 crawler-api 及 Spider_XHS 依赖：
+XHS Service 在单个 Python/FastAPI 进程中直接调用内置的 Spider_XHS 子模块，并完成笔记筛选和攻略增强。
 
 ```bash
-cd services/crawler-api
+cd services/agent-apps/xhs-guide-enhancer
 python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/pip install -r vendor/Spider_XHS/requirements.txt
@@ -387,9 +382,12 @@ npm ci --prefix vendor/Spider_XHS
 cp .env.example .env
 ```
 
-在 `services/crawler-api/.env` 中选择一种登录方式：
+在 `.env` 中配置模型和登录方式：
 
 ```dotenv
+LLM_API_KEY=你的大模型Key
+LLM_MODEL_ID=gpt-4o-mini
+
 # cookie / qrcode / phone
 XHS_LOGIN_TYPE=qrcode
 
@@ -397,9 +395,9 @@ XHS_LOGIN_TYPE=qrcode
 # XHS_COOKIES=你的完整Cookie
 ```
 
-`qrcode` 和 `phone` 不要求预先配置 Cookie。首次抓取时，终端会提示扫码或输入手机号及短信验证码；登录会话在当前 crawler-api 进程内复用，服务重启后需要重新登录。
+`qrcode` 和 `phone` 不要求预先配置 Cookie。首次抓取时，终端会提示扫码或输入手机号及短信验证码；登录会话在当前 XHS Service 进程内复用，服务重启后需要重新登录。
 
-启动抓取 API：
+启动 XHS Service：
 
 ```bash
 .venv/bin/python -m uvicorn app.main:app \
@@ -408,41 +406,13 @@ XHS_LOGIN_TYPE=qrcode
   --reload
 ```
 
-新开终端，安装并启动小红书攻略增强 Agent：
-
-```bash
-cd services/agent-apps/xhs-guide-enhancer
-python3 -m venv .venv
-.venv/bin/pip install -e .
-cp .env.example .env
-```
-
-在 `services/agent-apps/xhs-guide-enhancer/.env` 中配置：
-
-```dotenv
-CRAWLER_API_URL=http://127.0.0.1:8092
-LLM_API_KEY=你的大模型Key
-LLM_MODEL_ID=gpt-4o-mini
-# LLM_BASE_URL=https://你的模型服务地址/v1
-```
-
-启动增强 Agent：
-
-```bash
-.venv/bin/python -m uvicorn app.main:app \
-  --host 127.0.0.1 \
-  --port 8093 \
-  --reload
-```
-
-检查两个服务：
+检查服务：
 
 ```bash
 curl http://127.0.0.1:8092/health
-curl http://127.0.0.1:8093/health
 ```
 
-更完整的安装、登录及抓取参数说明见 [`services/crawler-api/README.md`](services/crawler-api/README.md) 和 [`services/agent-apps/xhs-guide-enhancer/README.md`](services/agent-apps/xhs-guide-enhancer/README.md)。
+更完整的安装、登录及抓取参数说明见 [`services/agent-apps/xhs-guide-enhancer/README.md`](services/agent-apps/xhs-guide-enhancer/README.md)。
 
 ### 4. 启动 Web 用户端
 
@@ -464,7 +434,7 @@ cp apps/web/.env.example apps/web/.env.local
 
 ```dotenv
 NATURAL_LANGUAGE_GUIDE_AGENT_URL=http://127.0.0.1:8091
-XHS_GUIDE_AGENT_URL=http://127.0.0.1:8093
+XHS_SERVICE_URL=http://127.0.0.1:8092
 ```
 
 只启动自然语言 Agent 时仍可生成基础攻略；未启动小红书抓取与增强服务时，页面会自动保留基础攻略。
@@ -487,13 +457,21 @@ pnpm dev:agent:import
 
 ### 运营后台账号登录
 
-运营后台 API 使用 MySQL 保存账号，并由 Spring Security 校验 BCrypt 密码、签发 Bearer JWT。先启动数据库：
+运营后台 API 使用 PostgreSQL 保存账号，并由 Spring Security 校验 BCrypt 密码、签发 Bearer JWT。后台业务数据和 RAG 共用同一个 PostgreSQL + pgvector 实例。先启动数据库：
 
 ```bash
 docker compose -f infra/admin/compose.yml up -d
 ```
 
-项目不自动修改数据库结构。首次使用时，先在 `pintrip_admin` 数据库手工执行 `infra/admin/schema.sql`；再复制 `infra/admin/create-first-admin.sql.example`，将其中的 `PASSWORD_BCRYPT_HASH` 替换为 BCrypt（cost 12）摘要后执行一次，以创建首个运营账号。
+项目不自动修改数据库结构。首次使用时，先在 `pintrip` 数据库手工执行 `infra/admin/schema.sql`；再复制 `infra/admin/create-first-admin.sql.example`，将其中的 `PASSWORD_BCRYPT_HASH` 替换为 BCrypt（cost 12）摘要后执行一次，以创建首个运营账号。
+
+Admin API 默认使用以下 PostgreSQL 连接；生产环境可通过环境变量覆盖：
+
+```dotenv
+ADMIN_DATABASE_URL=jdbc:postgresql://127.0.0.1:5433/pintrip
+ADMIN_DATABASE_USERNAME=pintrip
+ADMIN_DATABASE_PASSWORD=pintrip
+```
 
 启动 API 时只需提供数据库连接和 JWT 签名密钥：
 
@@ -502,7 +480,7 @@ ADMIN_JWT_SECRET='请替换为至少32字节的随机密钥' \
 pnpm dev:admin-api
 ```
 
-运营账号、BCrypt 密码摘要、账号状态和角色全部从 MySQL 读取。连续输错密码 5 次后默认锁定 15 分钟；可用 `ADMIN_LOGIN_MAX_FAILURES` 和 `ADMIN_LOGIN_LOCK_DURATION` 调整。运营后台开发服务器通过 `/admin-api` 代理访问 Java API，登录令牌默认有效期为 8 小时。
+运营账号、BCrypt 密码摘要、账号状态和角色全部从 PostgreSQL 读取。连续输错密码 5 次后默认锁定 15 分钟；可用 `ADMIN_LOGIN_MAX_FAILURES` 和 `ADMIN_LOGIN_LOCK_DURATION` 调整。运营后台开发服务器通过 `/admin-api` 代理访问 Java API，登录令牌默认有效期为 8 小时。
 
 ## 主要接口
 
@@ -512,10 +490,8 @@ pnpm dev:admin-api
 | Web | `POST /api/guides/enhance` | 异步请求小红书真实笔记增强，失败时返回基础攻略 |
 | 自然语言 Agent | `GET /health` | 检查模型和高德配置是否齐全 |
 | 自然语言 Agent | `POST /agent/natural-language-guide/generate` | 生成结构化旅行攻略 |
-| 小红书抓取 API | `GET /health` | 检查 Spider_XHS 路径及登录配置 |
-| 小红书抓取 API | `POST /crawl/xhs/search` | 按关键词抓取笔记正文及一级、二级评论 |
-| 小红书增强 Agent | `GET /health` | 检查抓取地址和模型配置 |
-| 小红书增强 Agent | `POST /agent/xhs-guide/enhance` | 用真实笔记证据增强基础攻略 |
+| XHS Service | `GET /health` | 检查 Spider_XHS、登录方式和模型配置 |
+| XHS Service | `POST /agent/xhs-guide/enhance` | 抓取真实笔记与评论并增强基础攻略 |
 | 导入攻略 Agent | `GET /health` | 导入 Agent 健康检查 |
 | 导入攻略 Agent | `POST /agent/import-guide/generate` | 导入笔记攻略接口（当前为脚手架） |
 | 导入攻略 Agent | `GET /rag/knowledge` | 获取运营知识库及 RAG 索引状态 |
@@ -566,8 +542,7 @@ mvn -q -f services/admin-api/pom.xml test
 | 意图、景点、天气、行程四 Agent 协作 | 已实现 |
 | LangGraph 并行研究、校验和重试 | 已实现 |
 | 高德真实地点、天气和每日图片 | 已实现 |
-| 小红书关键词抓取 API 适配层 | 已实现，Spider_XHS 已按固定版本作为 Submodule 引入 |
-| 小红书笔记按时间倒序、筛选与攻略增强 | 已实现 |
+| XHS Service 抓取、排序、筛选与攻略增强 | 已实现，Spider_XHS 已按固定版本作为 Submodule 引入 |
 | 导入笔记到导入 Agent 的任务编排 | 待接入 |
 | 管理后台真实业务接口 | 待接入 |
 | 数据库存储、任务队列和用户鉴权 | 待实现 |

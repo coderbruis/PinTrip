@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 
 from .agents import GuideMergerAgent
 from .config import EnhancerConfigurationError, get_settings
-from .infrastructure import CrawlerApiClient
+from .infrastructure import DirectXhsCrawler, SpiderXhsProvider
 from .service import XhsGuideEnhancementService
 
 
@@ -26,10 +26,7 @@ def get_enhancement_service() -> XhsGuideEnhancementService:
             f"Unable to initialize enhancement model client: {error}"
         ) from error
     return XhsGuideEnhancementService(
-        crawler=CrawlerApiClient(
-            settings.crawler_api_url,
-            settings.xhs_crawler_timeout,
-        ),
+        crawler=DirectXhsCrawler(SpiderXhsProvider(settings)),
         merger=GuideMergerAgent(llm),
         max_locations=settings.xhs_max_locations,
         notes_per_location=settings.xhs_notes_per_location,

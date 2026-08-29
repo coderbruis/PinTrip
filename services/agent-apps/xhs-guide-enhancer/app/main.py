@@ -9,8 +9,8 @@ from .models import EnhanceGuideRequest, EnhanceGuideResponse
 from .service import EnhancementError
 
 
-app = FastAPI(title="PinTrip Xiaohongshu Guide Enhancer")
-logger = logging.getLogger("uvicorn.error.pintrip.xhs-enhancer")
+app = FastAPI(title="PinTrip XHS Service")
+logger = logging.getLogger("uvicorn.error.pintrip.xhs-service")
 
 
 @app.get("/health")
@@ -18,8 +18,9 @@ def health() -> dict[str, str | bool]:
     settings = get_settings()
     return {
         "status": "UP" if settings.is_ready else "DEGRADED",
-        "service": "pintrip-xhs-guide-enhancer",
+        "service": "pintrip-xhs-service",
         "ready": settings.is_ready,
+        "loginType": settings.xhs_login_type.value,
     }
 
 

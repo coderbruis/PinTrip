@@ -2,13 +2,15 @@ import importlib
 import json
 import sys
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
-from ..config import CrawlerConfigurationError, Settings, XhsLoginType
+from ..config import EnhancerConfigurationError, Settings, XhsLoginType
 from ..models import Author, CrawledComment, CrawledNote, NoteType, SortBy
-from .base import SourceError
+
+
+class SourceError(RuntimeError):
+    """Raised when Spider_XHS cannot return usable source data."""
 
 
 def _as_int(value: Any) -> int:
@@ -31,10 +33,10 @@ def _as_timestamp(value: Any) -> str | None:
 
 
 class SpiderXhsProvider:
-    """Thin adapter around an externally supplied Spider_XHS checkout."""
+    """Internal adapter around the bundled Spider_XHS checkout."""
 
     def __init__(self, settings: Settings):
-        settings.require_spider_xhs()
+        settings.require_credentials()
         self._proxies = self._parse_proxies(settings.xhs_request_proxies_json)
         self._api = self._create_api(
             settings.spider_xhs_path,
@@ -45,7 +47,7 @@ class SpiderXhsProvider:
 
     @staticmethod
     def _create_api(
-        project_path: Path,
+        project_path: Any,
         login_type: XhsLoginType,
         cookies: str,
         proxies: dict[str, str] | None,
@@ -64,7 +66,7 @@ class SpiderXhsProvider:
             )
             return api_module.XHS_Apis(auth).bootstrap(proxies)
         except Exception as error:
-            raise CrawlerConfigurationError(
+            raise EnhancerConfigurationError(
                 f"Unable to initialize Spider_XHS: {error}"
             ) from error
 
@@ -91,11 +93,11 @@ class SpiderXhsProvider:
         try:
             parsed = json.loads(value)
         except json.JSONDecodeError as error:
-            raise CrawlerConfigurationError(
+            raise EnhancerConfigurationError(
                 "XHS_REQUEST_PROXIES_JSON must be a JSON object"
             ) from error
         if not isinstance(parsed, dict):
-            raise CrawlerConfigurationError(
+            raise EnhancerConfigurationError(
                 "XHS_REQUEST_PROXIES_JSON must be a JSON object"
             )
         return {str(key): str(item) for key, item in parsed.items()}
@@ -201,10 +203,9 @@ class SpiderXhsProvider:
                     ip_location=raw.get("ip_location"),
                 )
             )
-            sub_comments = raw.get("sub_comments") or []
             flattened.extend(
                 self._flatten_comments(
-                    sub_comments,
+                    raw.get("sub_comments") or [],
                     note_id,
                     parent_comment_id=comment_id,
                 )
@@ -250,9 +251,7 @@ class SpiderXhsProvider:
     @staticmethod
     def _find_video_url(card: dict[str, Any]) -> str | None:
         video = card.get("video") or {}
-        streams = (
-            ((video.get("media") or {}).get("stream") or {}).get("h264") or []
-        )
+        streams = (((video.get("media") or {}).get("stream") or {}).get("h264") or [])
         if streams:
             return streams[0].get("master_url") or streams[0].get("url")
         origin_key = (video.get("consumer") or {}).get("origin_video_key")

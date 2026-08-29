@@ -4,8 +4,7 @@ import logging
 from typing import Any
 
 from .agents import GuideMergerRunner
-from .infrastructure import CrawlerApiClient
-from .infrastructure.crawler_client import sort_notes_newest_first
+from .infrastructure import DirectXhsCrawler, sort_notes_newest_first
 from .models import (
     CrawledNote,
     EnhanceGuideRequest,
@@ -15,7 +14,7 @@ from .models import (
 from .parsing import parse_model
 
 
-logger = logging.getLogger("uvicorn.error.pintrip.xhs-enhancer")
+logger = logging.getLogger("uvicorn.error.pintrip.xhs-service")
 
 
 class EnhancementError(RuntimeError):
@@ -25,7 +24,7 @@ class EnhancementError(RuntimeError):
 class XhsGuideEnhancementService:
     def __init__(
         self,
-        crawler: CrawlerApiClient,
+        crawler: DirectXhsCrawler,
         merger: GuideMergerRunner,
         max_locations: int,
         notes_per_location: int,

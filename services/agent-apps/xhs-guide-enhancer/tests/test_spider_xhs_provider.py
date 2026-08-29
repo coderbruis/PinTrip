@@ -2,14 +2,20 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 
-from app.config import CrawlerConfigurationError, Settings, XhsLoginType
-from app.providers.spider_xhs import SpiderXhsProvider
+from app.config import (
+    DEFAULT_SPIDER_XHS_PATH,
+    EnhancerConfigurationError,
+    Settings,
+    XhsLoginType,
+)
+from app.infrastructure import SpiderXhsProvider
 
 
 class SpiderXhsProviderTest(unittest.TestCase):
     def test_defaults_to_bundled_submodule(self):
         settings = Settings(_env_file=None)
 
+        self.assertEqual(DEFAULT_SPIDER_XHS_PATH, settings.spider_xhs_path)
         self.assertEqual(
             Path(__file__).resolve().parents[1] / "vendor" / "Spider_XHS",
             settings.spider_xhs_path,
@@ -18,23 +24,25 @@ class SpiderXhsProviderTest(unittest.TestCase):
     def test_cookie_login_requires_cookie(self):
         settings = Settings(
             _env_file=None,
+            llm_api_key="test-key",
             xhs_login_type="cookie",
             xhs_cookies="",
         )
 
-        with self.assertRaisesRegex(CrawlerConfigurationError, "XHS_COOKIES"):
-            settings.require_spider_xhs()
+        with self.assertRaisesRegex(EnhancerConfigurationError, "XHS_COOKIES"):
+            settings.require_credentials()
 
     def test_interactive_login_does_not_require_cookie(self):
         for login_type in ("qrcode", "phone"):
             with self.subTest(login_type=login_type):
                 settings = Settings(
                     _env_file=None,
+                    llm_api_key="test-key",
                     xhs_login_type=login_type,
                     xhs_cookies="",
                 )
 
-                settings.require_spider_xhs()
+                settings.require_credentials()
                 self.assertTrue(settings.is_ready)
 
     def test_dispatches_supported_login_types(self):

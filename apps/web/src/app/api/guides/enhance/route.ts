@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 
-const DEFAULT_XHS_AGENT_URL = "http://127.0.0.1:8093";
+const DEFAULT_XHS_AGENT_URL = "http://127.0.0.1:8092";
 
 export const maxDuration = 180;
 
 function getXhsAgentUrl() {
-  return (process.env.XHS_GUIDE_AGENT_URL || DEFAULT_XHS_AGENT_URL).replace(/\/$/, "");
+  return (
+    process.env.XHS_SERVICE_URL ||
+    process.env.XHS_GUIDE_AGENT_URL ||
+    DEFAULT_XHS_AGENT_URL
+  ).replace(/\/$/, "");
 }
 
 function isEnhancementRequest(
