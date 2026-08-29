@@ -1,8 +1,12 @@
 package com.pintrip.adminapi.controller.knowledge;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.pintrip.adminapi.knowledge.RagClient;
+import com.pintrip.adminapi.knowledge.KnowledgeService;
+import com.pintrip.adminapi.knowledge.model.ChunkPreview;
+import com.pintrip.adminapi.knowledge.model.ImportKnowledgeRequest;
+import com.pintrip.adminapi.knowledge.model.KnowledgeItem;
+import com.pintrip.adminapi.knowledge.model.KnowledgeList;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,25 +19,26 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/knowledge")
 public class KnowledgeAdminController {
     @Resource
-    private RagClient ragClient;
+    private KnowledgeService knowledgeService;
 
     @GetMapping
-    public JsonNode list() {
-        return ragClient.listKnowledge();
+    public KnowledgeList list() {
+        return knowledgeService.list();
     }
 
     @GetMapping("/{knowledgeId}")
-    public JsonNode get(@PathVariable String knowledgeId) {
-        return ragClient.getKnowledge(knowledgeId);
+    public KnowledgeItem get(@PathVariable String knowledgeId) {
+        return knowledgeService.get(knowledgeId);
     }
 
     @PostMapping("/preview")
-    public JsonNode preview(@RequestBody JsonNode request) {
-        return ragClient.previewKnowledge(request);
+    public ChunkPreview preview(@Valid @RequestBody ImportKnowledgeRequest request) {
+        return knowledgeService.preview(request);
     }
 
     @PostMapping
-    public ResponseEntity<JsonNode> importKnowledge(@RequestBody JsonNode request) {
-        return ResponseEntity.accepted().body(ragClient.importKnowledge(request));
+    public ResponseEntity<KnowledgeItem> importKnowledge(
+            @Valid @RequestBody ImportKnowledgeRequest request) {
+        return ResponseEntity.accepted().body(knowledgeService.importKnowledge(request));
     }
 }

@@ -13,8 +13,11 @@ spring:
     hibernate:
       ddl-auto: validate
 pintrip:
-  rag:
-    base-url: ${RAG_SERVICE_URL:http://127.0.0.1:8090}
+  embedding:
+    api-key: ${EMBEDDING_API_KEY:${LLM_API_KEY:${OPENAI_API_KEY:}}}
+    base-url: ${EMBEDDING_BASE_URL:${LLM_BASE_URL:https://api.openai.com/v1}}
+    model: ${EMBEDDING_MODEL_ID:text-embedding-3-small}
+    dimensions: ${EMBEDDING_DIMENSIONS:1536}
   security:
     jwt-secret: ${ADMIN_JWT_SECRET:pintrip-local-jwt-secret-at-least-32-bytes}
     token-ttl: ${ADMIN_TOKEN_TTL:PT8H}

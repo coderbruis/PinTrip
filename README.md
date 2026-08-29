@@ -56,7 +56,6 @@ flowchart TB
     subgraph AgentServices["Agent 服务层"]
         NATURAL["自然语言攻略服务<br/>FastAPI :8091"]
         XHS_AGENT["XHS Service<br/>抓取 + 增强 :8092"]
-        IMPORT["导入攻略服务<br/>FastAPI :8090（脚手架）"]
 
         subgraph Workflow["LangGraph 工作流"]
             INTENT["意图 Agent"]
@@ -95,7 +94,7 @@ flowchart TB
     OPERATOR --> ADMIN
     WEB -.->|用户业务接口| USER_API
     ADMIN -->|运营业务接口| ADMIN_API
-    ADMIN_API -->|知识导入与索引| IMPORT
+    ADMIN_API -->|知识导入 / Embedding / 向量索引| PG[(PostgreSQL + pgvector)]
 ```
 
 实线表示当前已经接通的主要调用链路，虚线表示已建立模块但尚未完成的业务集成。
@@ -276,7 +275,6 @@ PinTrip/
 │   ├── user-api/                    # Web/App 用户 Spring Boot API
 │   ├── admin-api/                   # 运营后台 Spring Boot API
 │   └── agent-apps/
-│       ├── import-guide/            # 导入笔记生成攻略（脚手架）
 │       ├── natural-language-guide/  # 自然语言生成基础攻略（LangGraph）
 │       └── xhs-guide-enhancer/      # XHS Service：抓取、筛选与攻略增强（含 Spider_XHS）
 ├── packages/
@@ -451,8 +449,6 @@ pnpm dev:admin-api
 # 管理后台：http://localhost:3001
 pnpm dev:admin
 
-# 导入攻略 Agent：http://localhost:8090
-pnpm dev:agent:import
 ```
 
 ### 运营后台账号登录
@@ -471,6 +467,12 @@ Admin API 默认使用以下 PostgreSQL 连接；生产环境可通过环境变�
 ADMIN_DATABASE_URL=jdbc:postgresql://127.0.0.1:5433/pintrip
 ADMIN_DATABASE_USERNAME=pintrip
 ADMIN_DATABASE_PASSWORD=pintrip
+
+# 运营知识向量化
+EMBEDDING_API_KEY=你的Embedding模型Key
+EMBEDDING_MODEL_ID=text-embedding-3-small
+EMBEDDING_DIMENSIONS=1536
+# EMBEDDING_BASE_URL=https://api.openai.com/v1
 ```
 
 启动 API 时只需提供数据库连接和 JWT 签名密钥：
@@ -492,16 +494,11 @@ pnpm dev:admin-api
 | 自然语言 Agent | `POST /agent/natural-language-guide/generate` | 生成结构化旅行攻略 |
 | XHS Service | `GET /health` | 检查 Spider_XHS、登录方式和模型配置 |
 | XHS Service | `POST /agent/xhs-guide/enhance` | 抓取真实笔记与评论并增强基础攻略 |
-| 导入攻略 Agent | `GET /health` | 导入 Agent 健康检查 |
-| 导入攻略 Agent | `POST /agent/import-guide/generate` | 导入笔记攻略接口（当前为脚手架） |
-| 导入攻略 Agent | `GET /rag/knowledge` | 获取运营知识库及 RAG 索引状态 |
-| 导入攻略 Agent | `GET /rag/knowledge/{knowledgeId}` | 获取知识正文与切块详情 |
-| 导入攻略 Agent | `POST /rag/knowledge/import` | 校验、切块并提交攻略至 RAG 索引 |
 | 用户 API | `GET /api/health` | Web/App 用户服务健康检查 |
 | 运营后台 API | `GET /api/admin/health` | 运营服务健康检查 |
-| 运营后台 API | `GET /api/admin/knowledge` | 查询知识库，内部调用 RAG 服务 |
-| 运营后台 API | `POST /api/admin/knowledge/preview` | 预览知识切块，内部调用 RAG 服务 |
-| 运营后台 API | `POST /api/admin/knowledge` | 导入知识，内部调用 RAG 服务 |
+| 运营后台 API | `GET /api/admin/knowledge` | 从 PostgreSQL 查询知识库 |
+| 运营后台 API | `POST /api/admin/knowledge/preview` | 在 Java 内预览知识切块 |
+| 运营后台 API | `POST /api/admin/knowledge` | 导入、向量化并写入 pgvector |
 
 自然语言 Agent 请求示例：
 
@@ -543,8 +540,8 @@ mvn -q -f services/admin-api/pom.xml test
 | LangGraph 并行研究、校验和重试 | 已实现 |
 | 高德真实地点、天气和每日图片 | 已实现 |
 | XHS Service 抓取、排序、筛选与攻略增强 | 已实现，Spider_XHS 已按固定版本作为 Submodule 引入 |
-| 导入笔记到导入 Agent 的任务编排 | 待接入 |
-| 管理后台真实业务接口 | 待接入 |
+| Java Admin API 知识导入、切块与 pgvector 索引 | 已实现 |
+| 管理后台知识库接口 | 已实现 |
 | 数据库存储、任务队列和用户鉴权 | 待实现 |
 
 ## 安全说明
