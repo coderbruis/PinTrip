@@ -1,0 +1,10 @@
+.git
+.idea
+**/.DS_Store
+**/.env
+**/.venv
+**/node_modules
+**/target
+**/dist
+apps/web/.next
+services/agent-apps/xhs-guide-enhancer/vendor/Spider_XHS

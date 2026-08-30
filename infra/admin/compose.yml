@@ -16,6 +16,34 @@ services:
       retries: 10
     volumes:
       - pintrip-postgres-data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
+  admin-api:
+    build:
+      context: ../..
+      dockerfile: services/admin-api/Dockerfile
+    environment:
+      ADMIN_DATABASE_URL: jdbc:postgresql://postgres:5432/pintrip
+      ADMIN_DATABASE_USERNAME: pintrip
+      ADMIN_DATABASE_PASSWORD: pintrip
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-pintrip-local-compose-secret-32-bytes-minimum}
+      PINTRIP_INTERNAL_API_KEY: ${PINTRIP_INTERNAL_API_KEY:-pintrip-local-internal-key}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  admin-web:
+    build:
+      context: ../..
+      dockerfile: apps/admin/Dockerfile
+    ports:
+      - "3001:80"
+    depends_on:
+      - admin-api
+    restart: unless-stopped
 
 volumes:
   pintrip-postgres-data:

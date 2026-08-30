@@ -47,6 +47,15 @@ public class PinTripAdminUserDO {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    @Column(name = "password_changed_at", nullable = false)
+    private Instant passwordChangedAt;
+
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "pintrip_admin_user_role",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -61,9 +70,59 @@ public class PinTripAdminUserDO {
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }
     public String getDisplayName() { return displayName; }
+    public byte getStatus() { return status; }
     public int getFailedLoginCount() { return failedLoginCount; }
     public Instant getLockedUntil() { return lockedUntil; }
+    public Instant getLastLoginAt() { return lastLoginAt; }
+    public Instant getCreatedAt() { return createdAt; }
     public Set<PinTripAdminRoleDO> getRoles() { return Set.copyOf(roles); }
+
+    public static PinTripAdminUserDO create(
+            String username,
+            String email,
+            String passwordHash,
+            String displayName,
+            Set<PinTripAdminRoleDO> roles,
+            Instant now) {
+        PinTripAdminUserDO user = new PinTripAdminUserDO();
+        user.username = username;
+        user.email = email;
+        user.passwordHash = passwordHash;
+        user.displayName = displayName;
+        user.status = STATUS_ENABLED;
+        user.failedLoginCount = 0;
+        user.passwordChangedAt = now;
+        user.createdAt = now;
+        user.updatedAt = now;
+        user.roles.addAll(roles);
+        return user;
+    }
+
+    public void updateProfile(
+            String email,
+            String displayName,
+            byte status,
+            Set<PinTripAdminRoleDO> roles,
+            Instant now) {
+        this.email = email;
+        this.displayName = displayName;
+        this.status = status;
+        this.roles.clear();
+        this.roles.addAll(roles);
+        if (status == STATUS_ENABLED) {
+            this.lockedUntil = null;
+            this.failedLoginCount = 0;
+        }
+        this.updatedAt = now;
+    }
+
+    public void resetPassword(String passwordHash, Instant now) {
+        this.passwordHash = passwordHash;
+        this.passwordChangedAt = now;
+        this.failedLoginCount = 0;
+        this.lockedUntil = null;
+        this.updatedAt = now;
+    }
 
     public boolean isEnabled() { return status == STATUS_ENABLED; }
 

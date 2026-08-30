@@ -27,6 +27,25 @@ export async function login(username: string, password: string): Promise<LoginRe
   return response.json() as Promise<LoginResponse>;
 }
 
+export async function getCurrentAdmin(): Promise<AdminProfile> {
+  const token = getAccessToken();
+  if (!token) throw new Error("未登录");
+  const response = await fetch(`${apiBaseUrl}/api/admin/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (response.status === 401) {
+    clearSession();
+    throw new Error("登录已过期");
+  }
+  if (!response.ok) throw new Error("无法验证登录状态");
+  const profile = (await response.json()) as AdminProfile;
+  const storage = window.sessionStorage.getItem(tokenKey)
+    ? window.sessionStorage
+    : window.localStorage;
+  storage.setItem(profileKey, JSON.stringify(profile));
+  return profile;
+}
+
 export function saveSession(result: LoginResponse, persistent: boolean) {
   clearSession();
   const storage = persistent ? window.localStorage : window.sessionStorage;
