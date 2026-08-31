@@ -26,6 +26,8 @@ public class PinTripAdminRoleDO {
     protected PinTripAdminRoleDO() {
     }
 
+    public Long getId() { return id; }
     public String getRoleCode() { return roleCode; }
+    public String getRoleName() { return roleName; }
     public boolean isEnabled() { return status == 1; }
 }

@@ -85,9 +85,9 @@ Configure the service:
 
 ```dotenv
 RAG_DATABASE_URL=postgresql://pintrip:pintrip@127.0.0.1:5433/pintrip
-EMBEDDING_MODEL_ID=text-embedding-3-small
-EMBEDDING_API_KEY=your-embedding-api-key
-EMBEDDING_DIMENSIONS=1536
+EMBEDDING_SERVICE_URL=http://127.0.0.1:8081
+PINTRIP_INTERNAL_API_KEY=pintrip-local-internal-key
+EMBEDDING_DIMENSIONS=512
 ```
 
 The adapter lazily creates the `vector` extension, canonical

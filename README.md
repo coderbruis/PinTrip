@@ -453,13 +453,23 @@ pnpm dev:admin
 
 ### 运营后台账号登录
 
-运营后台 API 使用 PostgreSQL 保存账号，并由 Spring Security 校验 BCrypt 密码、签发 Bearer JWT。后台业务数据和 RAG 共用同一个 PostgreSQL + pgvector 实例。先启动数据库：
+运营后台 API 使用 PostgreSQL 保存账号，并由 Spring Security 校验 BCrypt 密码、签发 Bearer JWT。后台业务数据和 RAG 共用同一个 PostgreSQL + pgvector 实例。
+
+使用 Docker Compose 可以一次启动 PostgreSQL、Admin API 和 Admin Web：
 
 ```bash
-docker compose -f infra/admin/compose.yml up -d
+cp infra/admin/.env.example infra/admin/.env
+docker compose --env-file infra/admin/.env -f infra/admin/compose.yml up -d --build
 ```
 
-项目不自动修改数据库结构。首次使用时，先在 `pintrip` 数据库手工执行 `infra/admin/schema.sql`；再复制 `infra/admin/create-first-admin.sql.example`，将其中的 `PASSWORD_BCRYPT_HASH` 替换为 BCrypt（cost 12）摘要后执行一次，以创建首个运营账号。
+首次创建数据库卷时，Compose 会自动执行 `infra/admin/schema.sql`。已有数据库卷升级后，需要手工重新执行一次：
+
+```bash
+docker compose -f infra/admin/compose.yml exec -T postgres \
+  psql -U pintrip -d pintrip < infra/admin/schema.sql
+```
+
+复制 `infra/admin/create-first-admin.sql.example`，将其中的 `PASSWORD_BCRYPT_HASH` 替换为 BCrypt（cost 12）摘要后执行一次，以创建首个运营账号。后台地址为 <http://localhost:3001>，Admin API 地址为 <http://localhost:8081>。
 
 Admin API 默认使用以下 PostgreSQL 连接；生产环境可通过环境变量覆盖：
 
@@ -468,11 +478,20 @@ ADMIN_DATABASE_URL=jdbc:postgresql://127.0.0.1:5433/pintrip
 ADMIN_DATABASE_USERNAME=pintrip
 ADMIN_DATABASE_PASSWORD=pintrip
 
-# 运营知识向量化
-EMBEDDING_API_KEY=你的Embedding模型Key
-EMBEDDING_MODEL_ID=text-embedding-3-small
-EMBEDDING_DIMENSIONS=1536
-# EMBEDDING_BASE_URL=https://api.openai.com/v1
+```
+
+运营知识的 Embedding 由 Admin API 进程内置的量化版 `bge-small-zh-v1.5`
+在本地生成（512 维），无需 Embedding API Key，也无需另外启动模型服务。
+首次 Maven 构建会下载模型依赖，之后随 Admin API 镜像一起部署。
+Guide Service 通过 `EMBEDDING_SERVICE_URL` 调用该内部接口，因此入库和检索共用同一份模型，
+不再向云端发送 Embedding 请求。生产环境需用相同的 `PINTRIP_INTERNAL_API_KEY`
+配置 Admin API 和 Guide Service。
+
+如果旧数据库已使用 1536 维向量，需执行一次迁移（旧向量会清空，知识正文保留）：
+
+```bash
+docker compose -f infra/admin/compose.yml exec -T postgres \
+  psql -U pintrip -d pintrip < infra/admin/migrate-local-embedding-512.sql
 ```
 
 启动 API 时只需提供数据库连接和 JWT 签名密钥：

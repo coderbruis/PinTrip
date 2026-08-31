@@ -13,12 +13,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -48,11 +51,22 @@ public class AuthController {
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
                 .claim("roles", admin.roles())
+                .claim("email", admin.email())
+                .claim("display_name", admin.displayName())
                 .build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
         return new PinTripAdminLoginResponse(token, expiresAt,
                 new PinTripAdminProfile(admin.username(), admin.email(), admin.displayName(), admin.roles()));
+    }
+
+    @GetMapping("/me")
+    public PinTripAdminProfile me(@AuthenticationPrincipal Jwt jwt) {
+        return new PinTripAdminProfile(
+                jwt.getSubject(),
+                jwt.getClaimAsString("email"),
+                jwt.getClaimAsString("display_name"),
+                jwt.getClaimAsStringList("roles"));
     }
 
     @ExceptionHandler(AuthenticationException.class)

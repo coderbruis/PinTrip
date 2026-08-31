@@ -28,10 +28,9 @@ class Settings(BaseSettings):
     llm_max_retries: int = Field(default=1, ge=0, le=5)
     rag_database_url: str = ""
     rag_retrieval_limit: int = Field(default=8, ge=1, le=30)
-    embedding_model_id: str = "text-embedding-3-small"
-    embedding_api_key: str = ""
-    embedding_base_url: str | None = None
-    embedding_dimensions: int = Field(default=1536, ge=1, le=2000)
+    embedding_service_url: str = "http://127.0.0.1:8081"
+    pintrip_internal_api_key: str = "pintrip-local-internal-key"
+    embedding_dimensions: int = Field(default=512, ge=1, le=2000)
 
     @property
     def resolved_llm_api_key(self) -> str:
@@ -42,20 +41,14 @@ class Settings(BaseSettings):
         return bool(self.llm_api_key or self.openai_api_key)
 
     @property
-    def resolved_embedding_api_key(self) -> str:
-        return self.embedding_api_key or self.resolved_llm_api_key
-
-    @property
-    def resolved_embedding_base_url(self) -> str | None:
-        return self.embedding_base_url or self.llm_base_url
-
-    @property
     def rag_enabled(self) -> bool:
         return bool(self.rag_database_url)
 
     @property
     def rag_ready(self) -> bool:
-        return self.rag_enabled and bool(self.resolved_embedding_api_key)
+        return self.rag_enabled and bool(
+            self.embedding_service_url and self.pintrip_internal_api_key
+        )
 
     @property
     def is_ready(self) -> bool:
@@ -76,8 +69,10 @@ class Settings(BaseSettings):
         missing = []
         if not self.rag_database_url:
             missing.append("RAG_DATABASE_URL")
-        if not self.resolved_embedding_api_key:
-            missing.append("EMBEDDING_API_KEY or LLM_API_KEY or OPENAI_API_KEY")
+        if not self.embedding_service_url:
+            missing.append("EMBEDDING_SERVICE_URL")
+        if not self.pintrip_internal_api_key:
+            missing.append("PINTRIP_INTERNAL_API_KEY")
         if missing:
             raise AgentConfigurationError(
                 f"Missing required RAG configuration: {', '.join(missing)}"
