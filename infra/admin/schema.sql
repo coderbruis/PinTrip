@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS pintrip_knowledge_document (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT ck_knowledge_source_type CHECK (source_type IN ('operator', 'user')),
-    CONSTRAINT ck_knowledge_status CHECK (status IN ('indexing', 'published', 'failed'))
+    CONSTRAINT ck_knowledge_status CHECK (status IN ('indexing', 'published', 'failed', 'offline'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_knowledge_document_destination

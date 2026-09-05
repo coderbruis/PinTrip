@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pintrip.adminapi.knowledge.model.KnowledgeItem;
+import com.pintrip.adminapi.knowledge.model.KnowledgeList;
+import java.util.ArrayList;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -24,14 +26,34 @@ public class KnowledgeRepository {
         this.objectMapper = objectMapper;
     }
 
-    public List<KnowledgeItem> findAll() {
-        return jdbcTemplate.query(
+    public KnowledgeList search(int page, int pageSize, String keyword, String status, String sourceType) {
+        StringBuilder where = new StringBuilder(" WHERE TRUE");
+        List<Object> args = new ArrayList<>();
+        if (!keyword.isEmpty()) {
+            where.append(" AND (title ILIKE ? ESCAPE '!' OR destination ILIKE ? ESCAPE '!' OR id ILIKE ? ESCAPE '!')");
+            String pattern = "%" + keyword.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+            args.add(pattern);
+            args.add(pattern);
+            args.add(pattern);
+        }
+        if (!status.isEmpty()) {
+            where.append(" AND status = ?");
+            args.add(status);
+        }
+        if (!sourceType.isEmpty()) {
+            where.append(" AND source_type = ?");
+            args.add(sourceType);
+        }
+        Long total = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM pintrip_knowledge_document" + where, Long.class, args.toArray());
+        args.add(pageSize);
+        args.add(((long) page - 1) * pageSize);
+        List<KnowledgeItem> items = jdbcTemplate.query(
                 """
                 SELECT id, title, destination, source, source_type, chunk_count,
                        status, updated_at, tags, content, error_message
                 FROM pintrip_knowledge_document
-                ORDER BY updated_at DESC
-                """,
+                """ + where + " ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?",
                 (rs, rowNum) -> hydrate(new DocumentRow(
                         rs.getString("id"),
                         rs.getString("title"),
@@ -43,7 +65,8 @@ public class KnowledgeRepository {
                         rs.getObject("updated_at", OffsetDateTime.class),
                         readTags(rs.getString("tags")),
                         rs.getString("content"),
-                        rs.getString("error_message"))));
+                        rs.getString("error_message"))), args.toArray());
+        return new KnowledgeList(items, total == null ? 0 : total, page, pageSize);
     }
 
     public KnowledgeItem findById(String id) {
@@ -94,6 +117,34 @@ public class KnowledgeRepository {
                 writeTags(tags),
                 content);
 
+        insertChunks(id, chunks);
+    }
+
+    public int update(
+            String id,
+            String title,
+            String destination,
+            List<String> tags,
+            String content,
+            List<String> chunks) {
+        int updated = jdbcTemplate.update(
+                """
+                UPDATE pintrip_knowledge_document
+                SET title = ?, destination = ?, tags = CAST(? AS jsonb), content = ?,
+                    chunk_count = ?, status = 'indexing', error_message = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                title, destination, writeTags(tags), content, chunks.size(), id);
+        if (updated == 0) {
+            return 0;
+        }
+        jdbcTemplate.update("DELETE FROM pintrip_knowledge_chunk WHERE knowledge_id = ?", id);
+        insertChunks(id, chunks);
+        return updated;
+    }
+
+    private void insertChunks(String id, List<String> chunks) {
         jdbcTemplate.batchUpdate(
                 """
                 INSERT INTO pintrip_knowledge_chunk (
@@ -107,6 +158,30 @@ public class KnowledgeRepository {
                     statement.setInt(2, index);
                     statement.setString(3, chunks.get(index));
                 });
+    }
+
+    public int delete(String id) {
+        return jdbcTemplate.update("DELETE FROM pintrip_knowledge_document WHERE id = ?", id);
+    }
+
+    public int markOffline(String id) {
+        return jdbcTemplate.update(
+                """
+                UPDATE pintrip_knowledge_document
+                SET status = 'offline', error_message = NULL, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                id);
+    }
+
+    public int markIndexing(String id) {
+        return jdbcTemplate.update(
+                """
+                UPDATE pintrip_knowledge_document
+                SET status = 'indexing', error_message = NULL, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                id);
     }
 
     public List<String> findChunks(String knowledgeId) {
@@ -146,7 +221,13 @@ public class KnowledgeRepository {
     }
 
     public void markPublished(String id) {
-        updateStatus(id, "published", null);
+        jdbcTemplate.update(
+                """
+                UPDATE pintrip_knowledge_document
+                SET status = 'published', error_message = NULL, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND status = 'indexing'
+                """,
+                id);
     }
 
     public void markFailed(String id, String errorMessage) {
